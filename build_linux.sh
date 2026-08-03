@@ -2,7 +2,7 @@
 set -e
 
 echo "========================================"
-echo "  Barq Downloader - Linux Build Engine"
+echo "  Barq Download Manager - Linux Build"
 echo "========================================"
 
 # Clean previous builds
@@ -18,8 +18,8 @@ echo "[1/2] Installing pyinstaller if needed..."
 $VENV_PYTHON -m pip install pyinstaller
 
 echo "[2/2] Building Executable with PyInstaller..."
-$VENV_PYTHON -m PyInstaller --clean build_executable.spec
+$VENV_PYTHON -m PyInstaller --clean --noconfirm build_executable.spec
 
 echo ""
 echo "Build Successful!"
-echo "Executable is located in: $(pwd)/dist/BarqDownloader"
+echo "Executable is located in: $(pwd)/dist/Barq"

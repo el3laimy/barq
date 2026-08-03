@@ -10,9 +10,9 @@ except ImportError:
     HAS_ICONS = False
 
 from core.constants import APP_SHORT_NAME, APP_PROSE_NAME, APP_VERSION
+from utils.resources import resource_path
 
 
-import os
 from PyQt6.QtGui import QPixmap
 
 class BarqLogoWidget(QWidget):
@@ -20,9 +20,9 @@ class BarqLogoWidget(QWidget):
     def __init__(self, size=40, parent=None):
         super().__init__(parent)
         self.setFixedSize(size, size)
-        logo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "logo.png"))
-        if os.path.exists(logo_path):
-            self.pixmap = QPixmap(logo_path)
+        logo_path = resource_path("logo.png")
+        if logo_path.exists():
+            self.pixmap = QPixmap(str(logo_path))
         else:
             self.pixmap = None
 

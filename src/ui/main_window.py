@@ -16,6 +16,7 @@ from ui.styles import STYLESHEET
 from ui.sidebar import Sidebar
 from core.ipc_server import IPCServer
 from core.constants import APP_NAME, APP_SHORT_NAME, APP_PROSE_NAME, ORGANIZATION_NAME, IPC_PORT
+from utils.resources import resource_path
 
 
 class BarqMainWindow(QMainWindow):
@@ -26,9 +27,13 @@ class BarqMainWindow(QMainWindow):
         self.resize(1180, 740)
         self.setMinimumSize(900, 600)
         
-        logo_icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "logo.png"))
-        if os.path.exists(logo_icon_path):
-            self.setWindowIcon(QIcon(logo_icon_path))
+        # Use resource_path for frozen/dev compatibility
+        ico_path = resource_path("assets/icons/barq.ico")
+        png_path = resource_path("logo.png")
+        if ico_path.exists():
+            self.setWindowIcon(QIcon(str(ico_path)))
+        elif png_path.exists():
+            self.setWindowIcon(QIcon(str(png_path)))
         
         # Restore Geometry & Migrate legacy settings safely if present
         self.settings = QSettings(ORGANIZATION_NAME, "BarqDownloadManager")
@@ -226,9 +231,13 @@ class BarqMainWindow(QMainWindow):
 
     def setup_tray(self):
         self.tray_icon = QSystemTrayIcon(self)
-        logo_icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "logo.png"))
-        if os.path.exists(logo_icon_path):
-            self.tray_icon.setIcon(QIcon(logo_icon_path))
+        # Use resource_path for frozen/dev compatibility
+        ico_path = resource_path("assets/icons/barq.ico")
+        png_path = resource_path("logo.png")
+        if ico_path.exists():
+            self.tray_icon.setIcon(QIcon(str(ico_path)))
+        elif png_path.exists():
+            self.tray_icon.setIcon(QIcon(str(png_path)))
         else:
             self.tray_icon.setIcon(self.style().standardIcon(self.style().StandardPixmap.SP_ArrowDown))
         

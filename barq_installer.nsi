@@ -2,19 +2,19 @@
 ; Requires NSIS (http://nsis.sourceforge.net)
 
 !define APP_NAME "Barq Download Manager"
-!define EXE_NAME "BarqDownloader.exe"
+!define EXE_NAME "Barq.exe"
 !define PUBLISHER "Barq Project"
 !define VERSION "1.0.0"
 
 Name "${APP_NAME}"
 OutFile "BarqSetup_v${VERSION}.exe"
-InstallDir "$PROGRAMFILES64\BarqDownloader"
+InstallDir "$PROGRAMFILES64\Barq"
 SetCompressor lzma
 
 ; --- UI Settings ---
 !include "MUI2.nsh"
 !define MUI_ABORTWARNING
-!define MUI_ICON "icon.ico" ; Ensure you have an icon.ico in the root
+!define MUI_ICON "assets\icons\barq.ico"
 
 ; --- Pages ---
 !insertmacro MUI_PAGE_WELCOME
@@ -30,12 +30,22 @@ SetCompressor lzma
 
 Section "MainSection" SEC01
     SetOutPath "$INSTDIR"
-    File /r "dist\BarqDownloader\*.*"
+    File "dist\Barq.exe"
     
-    ; Create Shortcuts
-    CreateShortCut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${EXE_NAME}"
+    ; Bundle the icon for shortcuts
+    SetOutPath "$INSTDIR\assets\icons"
+    File "assets\icons\barq.ico"
+    SetOutPath "$INSTDIR"
+
+    ; Bundle browser integration
+    SetOutPath "$INSTDIR\browser_integration"
+    File /r "browser_integration\*.*"
+    SetOutPath "$INSTDIR"
+
+    ; Create Shortcuts with explicit icon
+    CreateShortCut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${EXE_NAME}" "" "$INSTDIR\assets\icons\barq.ico"
     CreateDirectory "$SMPROGRAMS\${APP_NAME}"
-    CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${EXE_NAME}"
+    CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${EXE_NAME}" "" "$INSTDIR\assets\icons\barq.ico"
     CreateShortCut "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk" "$INSTDIR\uninstall.exe"
 
     ; Browser Integration (Run the registration script)
@@ -46,9 +56,11 @@ Section "MainSection" SEC01
     WriteUninstaller "$INSTDIR\uninstall.exe"
     
     ; Add to Add/Remove Programs
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BarqDownloader" "DisplayName" "${APP_NAME}"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BarqDownloader" "UninstallString" "$INSTDIR\uninstall.exe"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BarqDownloader" "DisplayIcon" "$INSTDIR\${EXE_NAME}"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Barq" "DisplayName" "${APP_NAME}"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Barq" "UninstallString" "$INSTDIR\uninstall.exe"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Barq" "DisplayIcon" "$INSTDIR\assets\icons\barq.ico"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Barq" "Publisher" "${PUBLISHER}"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Barq" "DisplayVersion" "${VERSION}"
 SectionEnd
 
 Section "Uninstall"
@@ -58,5 +70,5 @@ Section "Uninstall"
     RMDir /r "$INSTDIR"
 
     ; Remove Registry Keys
-    DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\BarqDownloader"
+    DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Barq"
 SectionEnd

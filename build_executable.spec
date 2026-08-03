@@ -1,12 +1,22 @@
 # -*- mode: python ; coding: utf-8 -*-
+from pathlib import Path
 
 block_cipher = None
+project_root = Path(SPECPATH)
+icon_file = project_root / "assets" / "icons" / "barq.ico"
 
 a = Analysis(
     ['barq_app.py'],
-    pathex=[],
+    pathex=[str(project_root)],
     binaries=[],
-    datas=[('src', 'src'), ('browser_integration', 'browser_integration')],
+    datas=[
+        ('src', 'src'),
+        ('browser_integration', 'browser_integration'),
+        # Bundle the ICO so resource_path() can find it at runtime
+        (str(project_root / 'assets' / 'icons' / 'barq.ico'), 'assets/icons'),
+        # Bundle logo.png as fallback for Linux / tray
+        ('logo.png', '.'),
+    ],
     hiddenimports=['aiohttp', 'asyncio', 'PyQt6', 'pyqtgraph'],
     hookspath=[],
     hooksconfig={},
@@ -26,7 +36,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='BarqDownloader',
+    name='Barq',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -39,5 +49,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='icon.ico',
+    # Level 2: Embed ICO into the EXE file's PE resource section
+    icon=str(icon_file),
 )
