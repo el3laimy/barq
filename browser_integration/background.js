@@ -1,6 +1,6 @@
 // Background Service Worker
 
-const hostName = "com.titan.downloader";
+const hostName = "com.barq.downloader";
 let port = null;
 
 function connectToHost() {
@@ -20,14 +20,14 @@ function ensureConnection() {
 // Right-click context menu
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
-        id: "download_with_titan",
-        title: "Download with Titan",
+        id: "download_with_barq",
+        title: "Download with Barq",
         contexts: ["link", "video", "audio", "image"]
     });
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-    if (info.menuItemId === "download_with_titan") {
+    if (info.menuItemId === "download_with_barq") {
         const url = info.linkUrl || info.srcUrl;
         if (url) {
             sendDownloadToHost(url, tab ? tab.url : "");

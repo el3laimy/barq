@@ -15,18 +15,34 @@ if src_path not in sys.path:
 from ui.styles import STYLESHEET
 from ui.sidebar import Sidebar
 from core.ipc_server import IPCServer
+from core.constants import APP_NAME, APP_SHORT_NAME, APP_PROSE_NAME, ORGANIZATION_NAME, IPC_PORT
 
-class TitanMainWindow(QMainWindow):
+
+class BarqMainWindow(QMainWindow):
     def __init__(self, initial_url=None):
         super().__init__()
         self.initial_url = initial_url
-        self.setWindowTitle("Nexar Speed Engine • High-Performance Downloader")
+        self.setWindowTitle(f"{APP_PROSE_NAME} Speed Engine • High-Performance Downloader")
         self.resize(1180, 740)
         self.setMinimumSize(900, 600)
         
-        # Restore Geometry
-        self.settings = QSettings("Nexar", "DownloadEngine")
+        logo_icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "logo.png"))
+        if os.path.exists(logo_icon_path):
+            self.setWindowIcon(QIcon(logo_icon_path))
+        
+        # Restore Geometry & Migrate legacy settings safely if present
+        self.settings = QSettings(ORGANIZATION_NAME, "BarqDownloadManager")
         geometry = self.settings.value("geometry")
+        if not geometry:
+            # Check legacy setting paths for seamless migration
+            legacy_settings = QSettings("Nexar", "DownloadEngine")
+            geometry = legacy_settings.value("geometry")
+            if not geometry:
+                legacy_settings = QSettings("Titan", "DownloadEngine")
+                geometry = legacy_settings.value("geometry")
+            if geometry:
+                self.settings.setValue("geometry", geometry)
+
         if geometry:
             self.restoreGeometry(geometry)
             
@@ -49,7 +65,7 @@ class TitanMainWindow(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # 1. Sidebar Component (Nexar branded)
+        # 1. Sidebar Component (Barq branded)
         self.sidebar = Sidebar()
         self.sidebar.page_changed.connect(self.switch_page)
         main_layout.addWidget(self.sidebar)
@@ -61,8 +77,8 @@ class TitanMainWindow(QMainWindow):
         # Initialize All Page Views
         self.init_pages()
 
-        # Start IPC Server (Port 19375)
-        self.ipc_server = IPCServer(port=19375, parent=self)
+        # Start IPC Server
+        self.ipc_server = IPCServer(port=IPC_PORT, parent=self)
         self.ipc_server.url_received.connect(self.handle_ipc_url)
         self.ipc_server.start()
 
@@ -210,10 +226,14 @@ class TitanMainWindow(QMainWindow):
 
     def setup_tray(self):
         self.tray_icon = QSystemTrayIcon(self)
-        self.tray_icon.setIcon(self.style().standardIcon(self.style().StandardPixmap.SP_ArrowDown))
+        logo_icon_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "logo.png"))
+        if os.path.exists(logo_icon_path):
+            self.tray_icon.setIcon(QIcon(logo_icon_path))
+        else:
+            self.tray_icon.setIcon(self.style().standardIcon(self.style().StandardPixmap.SP_ArrowDown))
         
         tray_menu = QMenu()
-        action_show = QAction("Show Nexar Engine", self)
+        action_show = QAction(f"Show {APP_PROSE_NAME} Engine", self)
         action_show.triggered.connect(self.show_window)
         tray_menu.addAction(action_show)
         
@@ -244,7 +264,7 @@ class TitanMainWindow(QMainWindow):
             self.hide()
             if not self.has_shown_tray_msg:
                 self.tray_icon.showMessage(
-                    "Nexar Engine",
+                    f"{APP_PROSE_NAME} Engine",
                     "Application minimized to tray. Downloads will continue running.",
                     QSystemTrayIcon.MessageIcon.Information,
                     2000
@@ -257,7 +277,7 @@ class TitanMainWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = TitanMainWindow()
+    window = BarqMainWindow()
     
     def on_global_speed(speed):
         speed_kb = speed / 1024

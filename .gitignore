@@ -8,18 +8,34 @@ __pycache__/
 .venv/
 venv/
 ENV/
+env/
 
-# Testing / Cache
+# Testing & Coverage
 .pytest_cache/
 .coverage
+htmlcov/
 
-# Downloads & SQLite Databases
+# Downloads & Runtime Databases / Logs
 downloads/
 *.db
 *.db-shm
 *.db-wal
+*.log
+bridge.log
 
-# Build artifacts
+# Settings & Local Configurations
+settings.json
+settings.json.tmp
+
+# PyInstaller & Build Artifacts
 build/
 dist/
 *.egg-info/
+*.manifest
+*.spec.bak
+
+# IDE & OS Files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

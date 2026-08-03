@@ -56,9 +56,8 @@ def main():
 
                     if not ipc_success:
                         # Fallback: Launch the app
-                        current_dir = os.path.dirname(os.path.abspath(__file__))
-                        # Ensure we maintain backward compatibility with titan_app.py
-                        app_path = os.path.abspath(os.path.join(current_dir, '..', 'titan_app.py'))
+                        # Launch barq_app.py
+                        app_path = os.path.abspath(os.path.join(current_dir, '..', 'barq_app.py'))
                         
                         cmd = [sys.executable, app_path, url]
                         

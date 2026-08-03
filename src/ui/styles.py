@@ -1,4 +1,4 @@
-# Nexar Dark Cyber-Glass High-Contrast Premium Theme
+# Barq Dark Cyber-Glass High-Contrast Premium Theme
 
 COLORS = {
     "background": "#090D16",

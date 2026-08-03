@@ -2,7 +2,7 @@
 setlocal
 
 :: Name of the native messaging host
-set HOST_NAME=com.titan.downloader
+set HOST_NAME=com.barq.downloader
 
 :: Path to the manifest file
 set MANIFEST_PATH=%~dp0host.json
@@ -17,7 +17,7 @@ echo Manifest Path: %MANIFEST_PATH%
 reg add "%REG_KEY%" /ve /t REG_SZ /d "%MANIFEST_PATH%" /f
 
 if %errorlevel% equ 0 (
-    echo successfully registered host.
+    echo Successfully registered Barq native messaging host.
     echo IMPORTANT: You must update 'host.json' with your actual Chrome Extension ID.
 ) else (
     echo Failed to register host. Try running as Administrator.

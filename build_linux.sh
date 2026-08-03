@@ -2,7 +2,7 @@
 set -e
 
 echo "========================================"
-echo "  Titan Downloader - Linux Build Engine"
+echo "  Barq Downloader - Linux Build Engine"
 echo "========================================"
 
 # Clean previous builds
@@ -22,4 +22,4 @@ $VENV_PYTHON -m PyInstaller --clean build_executable.spec
 
 echo ""
 echo "Build Successful!"
-echo "Executable is located in: $(pwd)/dist/TitanDownloader"
+echo "Executable is located in: $(pwd)/dist/BarqDownloader"

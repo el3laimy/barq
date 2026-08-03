@@ -11,9 +11,9 @@ from core.resilient_downloader import ResilientDownloader
 class TestNonRangeResume(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.test_dir = "/tmp/nexar_non_range_test"
+        cls.test_dir = "/tmp/barq_non_range_test"
         os.makedirs(cls.test_dir, exist_ok=True)
-        cls.dummy_data = b"NEXAR_HEADER_FINGERPRINT_" + b"X" * (1024 * 1024 * 2) # 2MB dummy payload
+        cls.dummy_data = b"BARQ_HEADER_FINGERPRINT_" + b"X" * (1024 * 1024 * 2) # 2MB dummy payload
 
     @classmethod
     def tearDownClass(cls):

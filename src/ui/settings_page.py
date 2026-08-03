@@ -186,11 +186,12 @@ class SettingsPage(QWidget):
         cards_layout.addWidget(card_adv)
 
         # Card 4: System Information
-        card_about = SettingsCard("About Titan Engine", "Build version & system info")
+        from core.constants import APP_NAME, APP_VERSION, IPC_PORT
+        card_about = SettingsCard("About Barq Engine", "Build version & system info")
         info_lbl = QLabel(
-            "<b>Titan Download Accelerator v2.4 Pro (Build 2026)</b><br>"
+            f"<b>{APP_NAME} v{APP_VERSION}</b><br>"
             "High-throughput resilient multi-segment HTTP/HTTPS download manager.<br>"
-            "IPC Bridge active on port 19375 • PyQt6 Dark Glass UI System"
+            f"IPC Bridge active on port {IPC_PORT} • PyQt6 Dark Glass UI System"
         )
         info_lbl.setStyleSheet("color: #90A4AE; line-height: 1.4;")
         card_about.card_body.addWidget(info_lbl)

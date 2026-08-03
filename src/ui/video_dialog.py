@@ -31,7 +31,7 @@ class FetchVideoInfoThread(QThread):
 class VideoDownloadDialog(QDialog):
     def __init__(self, initial_url="", parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Nexar Media Engine • Stream & Video Extractor")
+        self.setWindowTitle("Barq Media Engine • Stream & Video Extractor")
         self.setMinimumWidth(560)
         self.setModal(True)
         self.download_config = None

@@ -9,51 +9,42 @@ try:
 except ImportError:
     HAS_ICONS = False
 
+from core.constants import APP_SHORT_NAME, APP_PROSE_NAME, APP_VERSION
 
-class NexarLogoWidget(QWidget):
-    """Custom High-DPI Vector Logo for Nexar: Cyber Hexagon with Converging Speed Beams."""
-    def __init__(self, size=36, parent=None):
+
+import os
+from PyQt6.QtGui import QPixmap
+
+class BarqLogoWidget(QWidget):
+    """High-DPI Logo Widget for Barq loading the official brand icon."""
+    def __init__(self, size=40, parent=None):
         super().__init__(parent)
         self.setFixedSize(size, size)
+        logo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "logo.png"))
+        if os.path.exists(logo_path):
+            self.pixmap = QPixmap(logo_path)
+        else:
+            self.pixmap = None
 
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
-        w = self.width()
-        h = self.height()
-        cx = w / 2.0
-        cy = h / 2.0
-        r = min(w, h) * 0.45
-
-        # 1. Outer Hexagon
-        hex_poly = QPolygonF()
-        for i in range(6):
-            angle_rad = math.radians(60 * i - 30)
-            x = cx + r * math.cos(angle_rad)
-            y = cy + r * math.sin(angle_rad)
-            hex_poly.append(QPointF(x, y))
-
-        grad = QLinearGradient(0, 0, w, h)
-        grad.setColorAt(0.0, QColor("#39FF14")) # Acid Green
-        grad.setColorAt(1.0, QColor("#00E5FF")) # Cyber Cyan
-
-        pen = QPen(QBrush(grad), 2.5)
-        painter.setPen(pen)
-        painter.setBrush(QColor(18, 24, 38, 180)) # Semi-transparent dark background
-        painter.drawPolygon(hex_poly)
-
-        # 2. Inner Converging Beams Arrow (3 parallel speed lines merging downward)
-        beam_pen = QPen(QBrush(grad), 2.0)
-        beam_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
-        painter.setPen(beam_pen)
-
-        # Left beam
-        painter.drawLine(QPointF(cx - r*0.4, cy - r*0.3), QPointF(cx, cy + r*0.45))
-        # Center beam
-        painter.drawLine(QPointF(cx, cy - r*0.5), QPointF(cx, cy + r*0.45))
-        # Right beam
-        painter.drawLine(QPointF(cx + r*0.4, cy - r*0.3), QPointF(cx, cy + r*0.45))
+        if self.pixmap and not self.pixmap.isNull():
+            scaled = self.pixmap.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            x = (self.width() - scaled.width()) // 2
+            y = (self.height() - scaled.height()) // 2
+            painter.drawPixmap(x, y, scaled)
+        else:
+            # Fallback vector shape if logo image is missing
+            w, h = self.width(), self.height()
+            cx, cy, r = w / 2.0, h / 2.0, min(w, h) * 0.45
+            grad = QLinearGradient(0, 0, w, h)
+            grad.setColorAt(0.0, QColor("#39FF14"))
+            grad.setColorAt(1.0, QColor("#00E5FF"))
+            painter.setPen(QPen(QBrush(grad), 2.5))
+            painter.drawEllipse(int(cx - r), int(cy - r), int(r * 2), int(r * 2))
 
         painter.end()
 
@@ -76,15 +67,15 @@ class Sidebar(QFrame):
         brand_layout.setContentsMargins(0, 0, 0, 12)
         brand_layout.setSpacing(10)
 
-        # Nexar Vector Icon
-        self.logo_icon = NexarLogoWidget(size=40)
+        # Barq Vector Icon
+        self.logo_icon = BarqLogoWidget(size=40)
         brand_layout.addWidget(self.logo_icon)
 
         # Brand Text Stack
         brand_text_box = QVBoxLayout()
         brand_text_box.setSpacing(0)
 
-        self.title = QLabel("NEXAR")
+        self.title = QLabel(APP_SHORT_NAME)
         self.title.setStyleSheet("font-size: 24px; font-weight: 900; color: #39FF14; letter-spacing: 3px;")
         brand_text_box.addWidget(self.title)
         
@@ -142,7 +133,7 @@ class Sidebar(QFrame):
         footer_layout = QHBoxLayout(self.footer_box)
         footer_layout.setContentsMargins(8, 6, 8, 6)
         
-        self.ver_label = QLabel("Nexar v3.0 Pro")
+        self.ver_label = QLabel(f"{APP_PROSE_NAME} v{APP_VERSION}")
         self.ver_label.setStyleSheet("font-size: 11px; color: #39FF14; font-weight: bold;")
         footer_layout.addWidget(self.ver_label)
         footer_layout.addStretch()

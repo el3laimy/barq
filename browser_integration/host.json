@@ -1,6 +1,6 @@
 {
-    "name": "com.titan.downloader",
-    "description": "Titan Downloader Native Host",
+    "name": "com.barq.downloader",
+    "description": "Barq Downloader Native Host",
     "path": "bridge.sh",
     "type": "stdio",
     "allowed_origins": [

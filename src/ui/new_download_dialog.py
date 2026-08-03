@@ -12,7 +12,7 @@ from core.url_resolver import URLResolver
 class NewDownloadDialog(QDialog):
     def __init__(self, initial_url="", parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Nexar Engine • New Download Task")
+        self.setWindowTitle("Barq Engine • New Download Task")
         self.setMinimumWidth(540)
         self.setModal(True)
         self.download_config = None

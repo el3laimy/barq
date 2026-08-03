@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo   Titan Downloader - Packaging Engine
+echo   Barq Downloader - Packaging Engine
 echo ========================================
 
 :: Clean previous builds
@@ -13,9 +13,9 @@ pyinstaller --clean build_executable.spec
 if %errorlevel% equ 0 (
     echo.
     echo [2/2] Build Successful! 
-    echo Executable is located in: %cd%\dist\TitanDownloader
+    echo Executable is located in: %cd%\dist\BarqDownloader
     echo.
-    echo Next Step: Run TitanSetup script (NSIS) to create installer.
+    echo Next Step: Run barq_installer.nsi script (NSIS) to create installer.
 ) else (
     echo.
     echo Error: Build Failed. Please check the logs above.

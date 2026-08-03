@@ -1,6 +1,6 @@
 {
-  "name": "Titan Download Manager Integration",
-  "description": "Intercepts downloads and sends them to Titan Download Manager",
+  "name": "Barq Download Manager Integration",
+  "description": "Intercepts downloads and sends them to Barq Download Manager",
   "version": "1.0",
   "manifest_version": 3,
   "permissions": [

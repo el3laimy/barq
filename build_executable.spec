@@ -3,7 +3,7 @@
 block_cipher = None
 
 a = Analysis(
-    ['titan_app.py'],
+    ['barq_app.py'],
     pathex=[],
     binaries=[],
     datas=[('src', 'src'), ('browser_integration', 'browser_integration')],
@@ -26,7 +26,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='TitanDownloader',
+    name='BarqDownloader',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

@@ -1,52 +1,205 @@
-# Titan Download Manager
+# ⚡ Barq Download Manager
 
-![Titan Logo](icon.ico) <!-- If icon exists -->
+> **Barq** is a modern, open-source download manager designed for fast parallel downloads, media handling, smart link resolution, and resilient download recovery.
 
-Titan is a high-performance, resilient, and multi-segmented download manager for Windows. Built with Python and PyQt6, it offers a "Dark Glass" aesthetic combined with heavy-duty downloading capabilities.
+![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)
+![UI Framework](https://img.shields.io/badge/GUI-PyQt6-cyan.svg)
 
-## 🚀 Key Features
+---
 
-- **Multi-Segmented Downloading**: Split files into up to 32 parallel segments for maximum speed.
-- **Resilient Engine**: Automatic retries with exponential backoff and state serialization (resume anything, anytime).
-- **Dark Glass UI**: Modern, premium interface with real-time speed analytics.
-- **Browser Integration**: Seamlessly intercept downloads from Google Chrome.
-- **Smart Categorization**: Automatically organizes downloads into Video, Audio, Documents, etc.
-- **Traffic Control**: Global speed limits and concurrent download management.
+## 📌 Development Status Notice
+Barq Download Manager is actively under development. Core multi-segment HTTP/HTTPS acceleration, resilient stream recovery, video link extraction, and browser integration are fully functional.
 
-## 🛠 Installation
+---
 
-### 1. Standard Installation
-Download and run the latest `TitanSetup.exe`. This will:
-- Install Titan to your Program Files.
-- Register the Native Messaging Host for browser integration.
-- Create Desktop and Start Menu shortcuts.
+## ✨ Features
 
-### 2. Browser Integration (Chrome)
-To intercept downloads from Chrome:
-1.  Go to `chrome://extensions`.
-2.  Enable **Developer Mode**.
-3.  Click **Load unpacked** and select the `browser_integration/extension` folder (or install from the companion zip).
-4.  Titan will now automatically take over downloads from your browser.
+### Implemented Features
+- **⚡ Multi-Segment Download Engine**: Dynamic chunk allocation with up to 32 parallel HTTP/HTTPS connections per file.
+- **🛡️ Resilient Recovery & Resume**: Header fingerprint verification and stream-draining rescue for non-range standard downloads.
+- **🎥 Media & Video Extraction Engine**: Integrated video stream detection powered by `yt-dlp` and `ffmpeg`.
+- **🌐 Native Browser Integration**: Intercepts browser downloads and context menus (`com.barq.downloader`).
+- **🔌 Inter-Process Communication (IPC)**: Local TCP socket server (`19375`) allowing single-instance URL dispatch.
+- **🎨 Dark Glass UI Theme**: High-contrast, hardware-accelerated PyQt6 user interface with real-time speed graphs (`pyqtgraph`).
+- **💾 Local SQLite Telemetry**: Persistent SQLite database storage for download state, history, and category organization.
 
-## ⚙️ Configuration
+### Planned & Experimental Features
+- **🌐 Full Cross-Browser Extension Store Package**: Pre-packaged Chrome & Firefox Web Store extensions.
+- **🔄 Bandwidth Scheduling & Speed Limit Rules**: Dynamic time-based bandwidth capping.
 
-- **Default Download Path**: Change it in the **Settings** tab.
-- **Speed Limits**: Set global limits to save bandwidth.
-- **Concurrency**: Group downloads into a queue.
+---
 
-## 🏗 Developer Info
+## 🖼️ Screenshots
 
-- **Language**: Python 3.10+
-- **Framework**: PyQt6
-- **Networking**: aiohttp, asyncio
-- **Database**: SQLite3
+*UI screenshots will be updated with upcoming production releases.*
 
-### Building from source
-```bash
-pip install -r requirements.txt
-python build.bat
-# Then use NSIS to compile titan_installer.nsi
+---
+
+## 🖥️ Supported Operating Systems
+
+- **Windows**: Windows 10 / 11 (64-bit) — *Verified with NSIS installer and PyInstaller executable*.
+- **Linux**: Ubuntu / Debian / Fedora / Arch Linux — *Verified with PyQt6 runtime and Native Messaging Host*.
+
+*(macOS support is currently unplanned due to platform-specific packaging constraints).*
+
+---
+
+## 🚀 Running from Source
+
+### Prerequisites
+- Python 3.10 or higher
+- `ffmpeg` (required for video merging with `yt-dlp`)
+
+### Quickstart
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/el3laimy/barq.git
+   cd barq
+   ```
+
+2. **Create and activate a virtual environment**:
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate    # On Linux / macOS
+   # .venv\Scripts\activate     # On Windows (PowerShell / CMD)
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Launch the application**:
+   ```bash
+   python barq_app.py
+   ```
+
+---
+
+## 📦 Building Executables & Installers
+
+### Windows Build Instructions
+
+1. Install development dependencies:
+   ```cmd
+   pip install -r requirements-dev.txt
+   ```
+
+2. Run the Windows build script in Command Prompt or PowerShell:
+   ```cmd
+   build.bat
+   ```
+   *In PowerShell:*
+   ```powershell
+   .\build.bat
+   ```
+
+3. Compile the standalone installer (requires [NSIS](https://nsis.sourceforge.io/)):
+   Right-click `barq_installer.nsi` and select **Compile NSIS Script** to generate `BarqSetup_v1.0.0.exe`.
+
+### Linux Build Instructions
+
+1. Ensure build tools and dependencies are installed:
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+
+2. Run the Linux build script:
+   ```bash
+   chmod +x build_linux.sh
+   ./build_linux.sh
+   ```
+   The standalone executable will be located in `dist/BarqDownloader/barq_app`.
+
+---
+
+## 🌐 Browser Integration Setup
+
+Barq connects with web browsers using Manifest V3 Native Messaging (`com.barq.downloader`).
+
+### Registration Steps
+
+- **Windows**:
+  Run `browser_integration/install_host.bat` (or `.\install_host.bat` in PowerShell).
+
+- **Linux**:
+  Make executable and run `browser_integration/install_host_linux.sh`:
+  ```bash
+  chmod +x browser_integration/install_host_linux.sh
+  ./browser_integration/install_host_linux.sh
+  ```
+
+> **Note**: Update `browser_integration/host.json` with your Chrome Extension ID under `allowed_origins`.
+
+---
+
+## 🛠️ Project Structure
+
+```
+barq/
+├── barq_app.py                 # Application Entry Point
+├── barq_installer.nsi          # NSIS Installer Script for Windows
+├── build.bat                   # Windows PyInstaller packaging script
+├── build_linux.sh              # Linux PyInstaller packaging script
+├── build_executable.spec       # PyInstaller Spec configuration
+├── requirements.txt            # Runtime dependencies
+├── requirements-dev.txt        # Development dependencies
+├── browser_integration/        # Native Messaging Host & Chrome Extension files
+│   ├── background.js           # Extension Service Worker
+│   ├── bridge.py               # Native Messaging bridge script
+│   ├── host.json               # Native Messaging host manifest
+│   ├── install_host.bat        # Windows host installer
+│   └── install_host_linux.sh  # Linux host installer
+├── src/
+│   ├── core/                   # Downloader logic, database, IPC, settings, & constants
+│   │   ├── constants.py        # Centralized application metadata
+│   │   ├── database.py         # SQLite download database manager
+│   │   ├── downloader.py       # Basic segmented downloader
+│   │   ├── ipc_server.py       # Local TCP IPC server
+│   │   ├── resilient_downloader.py # Resilient multi-part downloader engine
+│   │   ├── settings.py         # App settings manager
+│   │   ├── url_resolver.py     # Link and media stream resolver
+│   │   └── video_engine.py     # Video extraction via yt-dlp
+│   └── ui/                     # PyQt6 User Interface components
+│       ├── main_window.py      # Main Application Window
+│       ├── sidebar.py          # Custom vector sidebar navigation
+│       ├── dashboard_page.py   # Telemetry & speed graphs
+│       ├── downloads_page.py   # Main downloads manager hub
+│       └── styles.py           # Dark Glass theme stylesheet
+└── tests/                      # Automated test suite
 ```
 
 ---
-Developed with ❤️ by Titan Labs.
+
+## ⚠️ Known Limitations
+
+- **Browser Extension Publishing**: The extension included in `browser_integration/` must be loaded unpacked in developer mode until published on the Web Store.
+- **Server Side Limits**: Download acceleration depends on remote server support for HTTP `Range` requests.
+
+---
+
+## ⚖️ Security and Legal Notice
+
+Barq Download Manager is a general-purpose download tool intended for personal, lawful use. Users are responsible for complying with the terms of service of content providers and applicable copyright laws when using media downloading features.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to open issues or submit pull requests on GitHub.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. See the `LICENSE` file for details.
+
+Developed with ❤️ by **Barq Project**.
