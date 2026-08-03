@@ -180,6 +180,48 @@ barq/
 
 ---
 
+## 🎨 Icon Cache Cleanup & Troubleshooting
+
+If the taskbar or dock displays a generic icon after building or updating:
+
+### On Windows
+1. Unpin any old Barq shortcuts from the taskbar.
+2. Delete previous installer shortcuts from Desktop / Start Menu.
+3. Clean build: `pyinstaller --clean --noconfirm build_executable.spec`
+4. Reinstall using `BarqSetup_v1.0.0.exe` or run `dist/Barq.exe`.
+5. Pin the newly launched app to the taskbar.
+6. If Windows icon cache persists, restart Windows Explorer:
+   ```cmd
+   taskkill /f /im explorer.exe
+   start explorer.exe
+   ```
+
+### On Linux (GNOME / KDE / X11 / Wayland)
+1. Build the executable: `./build_linux.sh`
+2. Install system-wide desktop integration and icon:
+   ```bash
+   sudo ./install_linux.sh
+   ```
+3. Launch from the applications menu or via `gtk-launch barq`.
+4. If using Wayland / GNOME Dock, unpin old launcher and re-pin the new **Barq** launcher from the Applications menu.
+
+> **Note**: Running `./dist/Barq` directly from a terminal without running `./install_linux.sh` may prevent GNOME/KDE from matching the running process to the system `.desktop` launcher.
+
+### Debugging Icon Loading
+Enable diagnostic logging by setting `BARQ_DEBUG_ICON=1`:
+```bash
+BARQ_DEBUG_ICON=1 python3 barq_app.py
+```
+```bash
+BARQ_DEBUG_ICON=1 ./dist/Barq
+```
+```cmd
+set BARQ_DEBUG_ICON=1
+dist\Barq.exe
+```
+
+---
+
 ## ⚖️ Security and Legal Notice
 
 Barq Download Manager is a general-purpose download tool intended for personal, lawful use. Users are responsible for complying with the terms of service of content providers and applicable copyright laws when using media downloading features.

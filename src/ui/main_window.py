@@ -16,24 +16,20 @@ from ui.styles import STYLESHEET
 from ui.sidebar import Sidebar
 from core.ipc_server import IPCServer
 from core.constants import APP_NAME, APP_SHORT_NAME, APP_PROSE_NAME, ORGANIZATION_NAME, IPC_PORT
-from utils.resources import resource_path
+from utils.resources import load_app_icon
 
 
 class BarqMainWindow(QMainWindow):
-    def __init__(self, initial_url=None):
+    def __init__(self, initial_url=None, app_icon=None):
         super().__init__()
         self.initial_url = initial_url
+        self.app_icon = app_icon if app_icon and not app_icon.isNull() else load_app_icon()
         self.setWindowTitle(f"{APP_PROSE_NAME} Speed Engine • High-Performance Downloader")
         self.resize(1180, 740)
         self.setMinimumSize(900, 600)
         
-        # Use resource_path for frozen/dev compatibility
-        ico_path = resource_path("assets/icons/barq.ico")
-        png_path = resource_path("logo.png")
-        if ico_path.exists():
-            self.setWindowIcon(QIcon(str(ico_path)))
-        elif png_path.exists():
-            self.setWindowIcon(QIcon(str(png_path)))
+        if not self.app_icon.isNull():
+            self.setWindowIcon(self.app_icon)
         
         # Restore Geometry & Migrate legacy settings safely if present
         self.settings = QSettings(ORGANIZATION_NAME, "BarqDownloadManager")
@@ -230,16 +226,10 @@ class BarqMainWindow(QMainWindow):
             self.content_area.setCurrentIndex(index)
 
     def setup_tray(self):
-        self.tray_icon = QSystemTrayIcon(self)
-        # Use resource_path for frozen/dev compatibility
-        ico_path = resource_path("assets/icons/barq.ico")
-        png_path = resource_path("logo.png")
-        if ico_path.exists():
-            self.tray_icon.setIcon(QIcon(str(ico_path)))
-        elif png_path.exists():
-            self.tray_icon.setIcon(QIcon(str(png_path)))
-        else:
-            self.tray_icon.setIcon(self.style().standardIcon(self.style().StandardPixmap.SP_ArrowDown))
+        icon = self.app_icon if hasattr(self, 'app_icon') and not self.app_icon.isNull() else load_app_icon()
+        if icon.isNull():
+            icon = self.style().standardIcon(self.style().StandardPixmap.SP_ArrowDown)
+        self.tray_icon = QSystemTrayIcon(icon, self)
         
         tray_menu = QMenu()
         action_show = QAction(f"Show {APP_PROSE_NAME} Engine", self)

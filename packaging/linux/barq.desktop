@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Barq
+GenericName=Download Manager
+Comment=Fast and modern download manager
+Exec=/opt/barq/Barq %U
+Icon=barq
+Terminal=false
+Categories=Network;FileTransfer;
+StartupNotify=true
+StartupWMClass=barq
+Keywords=download;manager;barq;

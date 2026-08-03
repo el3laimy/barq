@@ -20,9 +20,11 @@ class BarqLogoWidget(QWidget):
     def __init__(self, size=40, parent=None):
         super().__init__(parent)
         self.setFixedSize(size, size)
-        logo_path = resource_path("logo.png")
-        if logo_path.exists():
-            self.pixmap = QPixmap(str(logo_path))
+        icon_path = resource_path("assets/icons/barq_256.png")
+        if not icon_path.exists():
+            icon_path = resource_path("logo.png")
+        if icon_path.exists():
+            self.pixmap = QPixmap(str(icon_path))
         else:
             self.pixmap = None
 

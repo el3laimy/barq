@@ -12,12 +12,20 @@ a = Analysis(
     datas=[
         ('src', 'src'),
         ('browser_integration', 'browser_integration'),
-        # Bundle the ICO so resource_path() can find it at runtime
         (str(project_root / 'assets' / 'icons' / 'barq.ico'), 'assets/icons'),
-        # Bundle logo.png as fallback for Linux / tray
+        (str(project_root / 'assets' / 'icons' / 'barq_256.png'), 'assets/icons'),
         ('logo.png', '.'),
     ],
-    hiddenimports=['aiohttp', 'asyncio', 'PyQt6', 'pyqtgraph'],
+    hiddenimports=[
+        'aiohttp',
+        'asyncio',
+        'PyQt6',
+        'PyQt6.QtCore',
+        'PyQt6.QtGui',
+        'PyQt6.QtWidgets',
+        'PyQt6.QtNetwork',
+        'pyqtgraph',
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -49,6 +57,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    # Level 2: Embed ICO into the EXE file's PE resource section
+    # Embed Windows PE icon
     icon=str(icon_file),
 )
