@@ -1,0 +1,19 @@
+{
+  "name": "Titan Download Manager Integration",
+  "description": "Intercepts downloads and sends them to Titan Download Manager",
+  "version": "1.0",
+  "manifest_version": 3,
+  "permissions": [
+    "downloads",
+    "nativeMessaging",
+    "cookies",
+    "contextMenus",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

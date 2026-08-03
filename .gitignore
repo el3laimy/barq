@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+
+# Testing / Cache
+.pytest_cache/
+.coverage
+
+# Downloads & SQLite Databases
+downloads/
+*.db
+*.db-shm
+*.db-wal
+
+# Build artifacts
+build/
+dist/
+*.egg-info/

@@ -1,0 +1,8 @@
+{
+    "download_path": "/media/el3laimy/01D9F60CC4D564A0/Download App/downloads",
+    "max_concurrent_downloads": 3,
+    "speed_limit": 0,
+    "max_retries": 10,
+    "connection_timeout": 30,
+    "theme": "Dark Glass"
+}
