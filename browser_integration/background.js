@@ -25,14 +25,14 @@ chrome.runtime.onInstalled.addListener(() => {
         chrome.contextMenus.create({
             id: "download_with_barq",
             title: "Download with Barq ⚡",
-            contexts: ["link", "video", "audio", "image"]
+            contexts: ["link", "video", "audio", "image", "selection"]
         });
     });
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (info.menuItemId === "download_with_barq") {
-        const url = info.linkUrl || info.srcUrl;
+        const url = info.linkUrl || info.srcUrl || info.pageUrl;
         if (url) {
             sendDownloadToHost(url, tab ? tab.url : "");
         }
@@ -42,21 +42,33 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 chrome.downloads.onCreated.addListener((downloadItem) => {
     if (downloadItem.state !== "in_progress") return;
 
-    // Filter out internal URLs
-    if (downloadItem.url.startsWith("chrome://") || downloadItem.url.startsWith("chrome-extension://") || downloadItem.url.startsWith("data:")) {
+    const url = downloadItem.url || "";
+    const mime = (downloadItem.mime || "").toLowerCase();
+
+    // Filter out internal URLs & data/blob protocols
+    if (url.startsWith("chrome://") || url.startsWith("chrome-extension://") || url.startsWith("data:") || url.startsWith("blob:")) {
         return;
     }
 
-    // Skip small files < 1MB (1048576 bytes)
-    // Note: If fileSize is -1, it means size is unknown, so we still intercept it.
+    // Filter out streaming media manifests & video segments to prevent breaking browser video playback
+    const streamingFormats = [".m3u8", ".mpd", ".ts", ".m4s", "playlist.m3u8", "manifest"];
+    const isStreaming = streamingFormats.some(ext => url.toLowerCase().includes(ext)) || 
+                        mime.includes("mpegurl") || mime.includes("dash+xml");
+
+    if (isStreaming) {
+        console.log("Preserving browser streaming video playback:", url);
+        return;
+    }
+
+    // Skip small files < 1MB (1048576 bytes) unless unknown size (-1)
     if (downloadItem.fileSize > 0 && downloadItem.fileSize < 1048576) {
-        console.log("Skipping small file:", downloadItem.url);
+        console.log("Skipping small file:", url);
         return;
     }
 
-    console.log("Intercepting download with Barq:", downloadItem.url);
+    console.log("Intercepting download with Barq:", url);
 
-    // Cancel the browser download
+    // Cancel the browser download and hand over to Barq
     chrome.downloads.cancel(downloadItem.id, () => {
         if (chrome.runtime.lastError) {
             console.error("Cancel error:", chrome.runtime.lastError);
