@@ -18,13 +18,27 @@ logger = logging.getLogger(__name__)
 HOST_NAME = "com.barq.downloader"
 
 class BrowserIntegrationManager:
-    @staticmethod
-    def get_browser_integration_dir() -> Path:
+    @classmethod
+    def clean_extension_dir(cls, path: Path):
+        """Clean any __pycache__ or temporary files starting with '_' which Chrome forbids in extension folders."""
+        import shutil
+        if path.exists():
+            pycache = path / "__pycache__"
+            if pycache.exists():
+                try:
+                    shutil.rmtree(pycache)
+                    logger.info("Removed __pycache__ from extension directory.")
+                except Exception as e:
+                    logger.warning(f"Failed to remove __pycache__: {e}")
+
+    @classmethod
+    def get_browser_integration_dir(cls) -> Path:
         """Returns the absolute path to the browser_integration folder."""
         path = resource_path("browser_integration")
         if not path.exists():
             # Fallback to dev directory
             path = Path(__file__).resolve().parents[2] / "browser_integration"
+        cls.clean_extension_dir(path)
         return path
 
     @staticmethod

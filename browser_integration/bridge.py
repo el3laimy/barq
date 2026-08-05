@@ -1,8 +1,12 @@
 import sys
+import os
+
+# Prevent Python from writing __pycache__ inside extension folder (Chrome forbids '_' prefix files)
+sys.dont_write_bytecode = True
+
 import struct
 import json
 import subprocess
-import os
 import socket
 import logging
 
