@@ -1,4 +1,4 @@
-// Background Service Worker
+// Background Service Worker for Barq Download Manager Integration
 
 const hostName = "com.barq.downloader";
 let port = null;
@@ -6,7 +6,9 @@ let port = null;
 function connectToHost() {
     port = chrome.runtime.connectNative(hostName);
     port.onDisconnect.addListener(() => {
-        console.log("Disconnected from Native Host", chrome.runtime.lastError);
+        if (chrome.runtime.lastError) {
+            console.log("Disconnected from Barq Native Host:", chrome.runtime.lastError.message);
+        }
         port = null;
     });
 }
@@ -17,12 +19,14 @@ function ensureConnection() {
     }
 }
 
-// Right-click context menu
+// Right-click context menu setup
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.contextMenus.create({
-        id: "download_with_barq",
-        title: "Download with Barq",
-        contexts: ["link", "video", "audio", "image"]
+    chrome.contextMenus.removeAll(() => {
+        chrome.contextMenus.create({
+            id: "download_with_barq",
+            title: "Download with Barq ⚡",
+            contexts: ["link", "video", "audio", "image"]
+        });
     });
 });
 
@@ -50,14 +54,14 @@ chrome.downloads.onCreated.addListener((downloadItem) => {
         return;
     }
 
-    console.log("Intercepting download:", downloadItem.url);
+    console.log("Intercepting download with Barq:", downloadItem.url);
 
     // Cancel the browser download
     chrome.downloads.cancel(downloadItem.id, () => {
         if (chrome.runtime.lastError) {
             console.error("Cancel error:", chrome.runtime.lastError);
         } else {
-            console.log("Download cancelled in browser. Gathering info and sending to App...");
+            console.log("Download cancelled in browser. Gathering info and sending to Barq...");
             sendDownloadToHost(
                 downloadItem.url, 
                 downloadItem.referrer || "", 
@@ -95,9 +99,9 @@ async function sendDownloadToHost(url, referrer = "", filename = "", fileSize = 
 
     try {
         port.postMessage(message);
-        console.log("Sent full context to host:", url);
+        console.log("Sent full context to Barq host:", url);
     } catch (e) {
-        console.error("Failed to send message:", e);
+        console.error("Failed to send message to Barq host:", e);
         // Retry connection once
         connectToHost();
         try {
