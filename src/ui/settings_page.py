@@ -185,7 +185,58 @@ class SettingsPage(QWidget):
 
         cards_layout.addWidget(card_adv)
 
-        # Card 4: System Information
+        # Card 4: Browser Integration & Extension Interception
+        from core.browser_installer import BrowserIntegrationManager
+        card_browser = SettingsCard("🌐 Browser Interception & Extension", "Automatically capture downloads from Chrome, Brave, Edge, Firefox & Chromium")
+        
+        browser_layout = QVBoxLayout()
+        browser_layout.setSpacing(10)
+
+        # Status Label
+        browsers_info = BrowserIntegrationManager.detect_installed_browsers()
+        detected_names = [b for b, info in browsers_info.items() if info.get('installed')]
+        status_str = "Detected Browsers: " + (", ".join(detected_names) if detected_names else "None detected")
+        
+        lbl_b_status = QLabel(f"<b>{status_str}</b><br><span style='color:#90A4AE;'>Native Messaging Host interceptor sends web browser downloads directly to Barq engine.</span>")
+        lbl_b_status.setStyleSheet("font-size: 12px; color: #39FF14;")
+        browser_layout.addWidget(lbl_b_status)
+
+        # Buttons Row
+        btns_row = QHBoxLayout()
+        btns_row.setSpacing(12)
+
+        self.btn_auto_install = QPushButton("⚡ Auto-Install Integration")
+        self.btn_auto_install.setStyleSheet("""
+            QPushButton {
+                background: linear-gradient(135deg, #00E5FF, #00B0FF);
+                color: #000000;
+                font-weight: bold;
+                padding: 8px 16px;
+                border-radius: 6px;
+            }
+            QPushButton:hover {
+                background: #39FF14;
+            }
+        """)
+        self.btn_auto_install.clicked.connect(self.on_auto_install_browser_integration)
+
+        self.btn_open_folder = QPushButton("📂 Open Extension Folder")
+        self.btn_open_folder.setProperty("class", "secondary")
+        self.btn_open_folder.clicked.connect(lambda: BrowserIntegrationManager.open_extension_folder())
+
+        self.btn_open_browser_page = QPushButton("🌐 Extensions Page")
+        self.btn_open_browser_page.setProperty("class", "secondary")
+        self.btn_open_browser_page.clicked.connect(lambda: BrowserIntegrationManager.launch_browser_extensions_page())
+
+        btns_row.addWidget(self.btn_auto_install)
+        btns_row.addWidget(self.btn_open_folder)
+        btns_row.addWidget(self.btn_open_browser_page)
+
+        browser_layout.addLayout(btns_row)
+        card_browser.card_body.addLayout(browser_layout)
+        cards_layout.addWidget(card_browser)
+
+        # Card 5: System Information
         from core.constants import APP_NAME, APP_VERSION, IPC_PORT
         card_about = SettingsCard("About Barq Engine", "Build version & system info")
         info_lbl = QLabel(
@@ -251,3 +302,27 @@ class SettingsPage(QWidget):
         
         self.save_btn.hide()
         self.settings_saved.emit()
+
+    def on_auto_install_browser_integration(self):
+        from core.browser_installer import BrowserIntegrationManager
+        results = BrowserIntegrationManager.register_all_native_hosts()
+        
+        success_list = [b for b, ok in results.items() if ok]
+        if success_list:
+            msg = (
+                f"<b>⚡ Barq Native Host Successfully Registered!</b><br><br>"
+                f"Configured for: <b>{', '.join(success_list)}</b><br><br>"
+                "<b>Next Steps:</b><br>"
+                "1. Open your browser extension manager (e.g. <code>chrome://extensions</code>).<br>"
+                "2. Enable <b>Developer Mode</b>.<br>"
+                "3. Click <b>Load Unpacked</b> and select the <code>browser_integration</code> folder.<br>"
+                "4. All downloads will now be intercepted automatically by Barq!"
+            )
+            QMessageBox.information(self, "Browser Integration Configured", msg)
+        else:
+            QMessageBox.warning(
+                self,
+                "Browser Integration Warning",
+                "Could not auto-register Native Host manifests. Please check directory permissions or run as administrator."
+            )
+

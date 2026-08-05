@@ -66,6 +66,13 @@ def main() -> int:
     # Step 4: Set AppUserModelID BEFORE QApplication
     configure_windows_app_id()
 
+    # Automatically register browser integration native hosts
+    try:
+        from core.browser_installer import BrowserIntegrationManager
+        BrowserIntegrationManager.register_all_native_hosts()
+    except Exception as exc:
+        print(f"Browser integration auto-registration notice: {exc}")
+
     # Step 5: Configure QApplication
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
