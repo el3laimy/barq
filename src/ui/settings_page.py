@@ -309,14 +309,18 @@ class SettingsPage(QWidget):
         
         success_list = [b for b, ok in results.items() if ok]
         if success_list:
+            # Auto open extension folder and extensions page for 1-click setup
+            BrowserIntegrationManager.open_extension_folder()
+            BrowserIntegrationManager.launch_browser_extensions_page()
+
             msg = (
                 f"<b>⚡ Barq Native Host Successfully Registered!</b><br><br>"
                 f"Configured for: <b>{', '.join(success_list)}</b><br><br>"
-                "<b>Next Steps:</b><br>"
-                "1. Open your browser extension manager (e.g. <code>chrome://extensions</code>).<br>"
-                "2. Enable <b>Developer Mode</b>.<br>"
-                "3. Click <b>Load Unpacked</b> and select the <code>browser_integration</code> folder.<br>"
-                "4. All downloads will now be intercepted automatically by Barq!"
+                "<b>Automatic Setup Opened:</b><br>"
+                "1. The <code>browser_integration</code> folder and browser Extensions page were opened for you.<br>"
+                "2. Enable <b>Developer Mode</b> in your browser.<br>"
+                "3. Click <b>Load Unpacked</b> (تثبيت إضافة غير محزومة) and select the <code>browser_integration</code> folder.<br><br>"
+                "All web browser downloads will now be automatically captured by Barq!"
             )
             QMessageBox.information(self, "Browser Integration Configured", msg)
         else:
