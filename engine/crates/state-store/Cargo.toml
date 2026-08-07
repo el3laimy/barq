@@ -1,0 +1,11 @@
+[package]
+name = "state-store"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+engine-core = { path = "../engine-core" }
+sqlite = "0.36"
+thiserror.workspace = true
+tracing.workspace = true

@@ -1,0 +1,29 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/engine-core",
+    "crates/transport-curl",
+    "crates/state-store",
+    "crates/file-writer",
+    "crates/adaptive-scheduler",
+    "crates/ipc-protocol",
+    "crates/engine-daemon",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Barq Project Contributors"]
+license = "AGPL-3.0"
+
+[workspace.dependencies]
+tokio = { version = "1.38", features = ["full"] }
+curl = "0.4.46"
+sqlite = "0.36"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+thiserror = "1.0"
+anyhow = "1.0"
+bytes = "1.6"

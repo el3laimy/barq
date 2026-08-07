@@ -246,6 +246,9 @@ class SettingsPage(QWidget):
         )
         info_lbl.setStyleSheet("color: #90A4AE; line-height: 1.4;")
         card_about.card_body.addWidget(info_lbl)
+        self.rust_engine_check = QCheckBox("⚡ Enable Experimental Rust Engine Daemon (barq-engine v0.1.0)")
+        self.rust_engine_check.setStyleSheet("color: #00E5FF; font-weight: bold;")
+        card_about.card_body.addWidget(self.rust_engine_check)
         cards_layout.addWidget(card_about)
 
         scroll.setWidget(scroll_content)
@@ -266,6 +269,7 @@ class SettingsPage(QWidget):
         self.speed_spin.valueChanged.connect(self.on_changed)
         self.retries_spin.valueChanged.connect(self.on_changed)
         self.timeout_spin.valueChanged.connect(self.on_changed)
+        self.rust_engine_check.stateChanged.connect(self.on_changed)
 
     def on_changed(self):
         self.save_btn.show()
@@ -284,6 +288,7 @@ class SettingsPage(QWidget):
         
         self.retries_spin.setValue(settings_manager.get("max_retries", 5))
         self.timeout_spin.setValue(settings_manager.get("connection_timeout", 30))
+        self.rust_engine_check.setChecked(settings_manager.get("use_rust_engine", False))
 
     def save_settings(self):
         settings_manager.set("download_path", self.path_input.text())
@@ -297,6 +302,7 @@ class SettingsPage(QWidget):
         
         settings_manager.set("max_retries", self.retries_spin.value())
         settings_manager.set("connection_timeout", self.timeout_spin.value())
+        settings_manager.set("use_rust_engine", self.rust_engine_check.isChecked())
         
         global_limiter.set_limit(limit_bytes)
         

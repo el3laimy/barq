@@ -5,6 +5,7 @@ from PyQt6.QtCore import QThread, pyqtSignal
 
 from core.resilient_downloader import ResilientDownloader
 from core.traffic_control import global_limiter
+from core.settings import settings_manager
 
 class DownloadWorker(QThread):
     started = pyqtSignal(str, object) 
@@ -74,10 +75,16 @@ class DownloadWorker(QThread):
         def status_callback(status):
             self.status_changed.emit(status)
 
-        self.downloader = ResilientDownloader(self.url, self.dest, parts=16, 
-                                              progress_callback=callback,
-                                              status_callback=status_callback,
-                                              speed_limiter=global_limiter)
+        parts = settings_manager.get("segments_per_download", 16)
+        max_retries = settings_manager.get("max_retries", 10)
+        connection_timeout = settings_manager.get("connection_timeout", 30)
+
+        self.downloader = ResilientDownloader(self.url, self.dest, parts=parts,
+                                               max_retries=max_retries,
+                                               connection_timeout=connection_timeout,
+                                               progress_callback=callback,
+                                               status_callback=status_callback,
+                                               speed_limiter=global_limiter)
         try:
             self.status_changed.emit("Downloading...")
             await self.downloader.start()

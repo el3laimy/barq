@@ -55,7 +55,7 @@ class VideoInfoExtractor:
                 if res_key not in seen_res:
                     seen_res.add(res_key)
                     formats.append({
-                        'format_id': f.get('format_id'),
+                        'format_id': f"{f.get('format_id')}+bestaudio/best",
                         'resolution': res_key,
                         'height': height,
                         'ext': ext,
@@ -111,14 +111,13 @@ class VideoDownloadWorker(QThread):
                 'progress_hooks': [self._progress_hook],
                 'quiet': True,
                 'no_warnings': True,
-                'nocheckcertificate': True,
             }
 
             ffmpeg_bin = VideoInfoExtractor.get_ffmpeg_path()
             if ffmpeg_bin:
                 ydl_opts['ffmpeg_location'] = ffmpeg_bin
                 
-            if 'bestaudio' in self.format_id and not 'bestvideo' in self.format_id:
+            if 'bestaudio' in self.format_id and 'bestvideo' not in self.format_id:
                 ydl_opts['postprocessors'] = [{
                     'key': 'FFmpegExtractAudio',
                     'preferredcodec': 'mp3',

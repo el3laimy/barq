@@ -1,0 +1,17 @@
+[package]
+name = "engine-daemon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+engine-core = { path = "../engine-core" }
+transport-curl = { path = "../transport-curl" }
+state-store = { path = "../state-store" }
+file-writer = { path = "../file-writer" }
+adaptive-scheduler = { path = "../adaptive-scheduler" }
+ipc-protocol = { path = "../ipc-protocol" }
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true

@@ -16,6 +16,26 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 log_file = os.path.join(current_dir, 'bridge.log')
 logging.basicConfig(filename=log_file, level=logging.DEBUG, format='%(asctime)s %(message)s')
 
+# Add src to path for security module access
+_src_dir = os.path.abspath(os.path.join(current_dir, '..', 'src'))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
+try:
+    from utils.security import redact_sensitive_data as sanitize_log_data
+except ImportError:
+    # Fallback: minimal inline redaction if security module unavailable (e.g. frozen exe)
+    import re
+    def sanitize_log_data(data):
+        """Fallback redaction when security module is unavailable."""
+        if isinstance(data, dict):
+            return {k: "[REDACTED]" if any(kw in k.lower() for kw in ['cookie', 'token', 'auth', 'password', 'secret', 'key']) else sanitize_log_data(v) for k, v in data.items()}
+        elif isinstance(data, str):
+            return re.sub(r'([?&](?:token|key|access_token|auth|password|secret)=)[^&]+', r'\1[REDACTED]', data, flags=re.IGNORECASE)
+        elif isinstance(data, list):
+            return [sanitize_log_data(item) for item in data]
+        return data
+
 IPC_PORT = 19375  # Shared port with GUI application
 
 def get_message():
@@ -45,7 +65,7 @@ def main():
         while True:
             message = get_message()
             if message is not None:
-                logging.info(f"Received message: {message}")
+                logging.info(f"Received message: {sanitize_log_data(message)}")
                 url = message.get('url')
                 if url:
                     # Try to send via IPC first

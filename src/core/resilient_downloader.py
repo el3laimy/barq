@@ -11,11 +11,14 @@ class ResilientDownloader:
     """High-Throughput Resilient Multi-Segment Downloader with Smart Resume & Non-Range Stream Rescue."""
     
     def __init__(self, url: str, destination: str, parts: int = 16, 
+                 max_retries: int = 10, connection_timeout: int = 30,
                  progress_callback: Optional[Callable[[int, int], None]] = None,
                  status_callback: Optional[Callable[[str], None]] = None,
                  speed_limiter=None):
         self.url = url
         self.parts = parts
+        self.max_retries = max_retries
+        self.connection_timeout = connection_timeout
         self.progress_callback = progress_callback
         self.status_callback = status_callback
         self.speed_limiter = speed_limiter
@@ -114,8 +117,9 @@ class ResilientDownloader:
                     last_mod = response.headers.get('Last-Modified')
                     if response.headers.get('Accept-Ranges') == 'bytes':
                         supports_range = True
-        except Exception:
-            pass
+        except Exception as e:
+            if "Expired" not in str(e):
+                print(f"HEAD request failed: {e}")
 
         try:
             headers['Range'] = 'bytes=0-0'
@@ -144,7 +148,7 @@ class ResilientDownloader:
         try:
             with open(self.temp_file, 'rb') as f:
                 disk_header = f.read(len(incoming_header_bytes))
-            return hashlib.md5(disk_header).hexdigest() == hashlib.md5(incoming_header_bytes).hexdigest()
+            return hashlib.sha256(disk_header).hexdigest() == hashlib.sha256(incoming_header_bytes).hexdigest()
         except Exception:
             return False
 
@@ -155,7 +159,7 @@ class ResilientDownloader:
         }
         
         loop = asyncio.get_running_loop()
-        timeout = aiohttp.ClientTimeout(total=None, connect=10, sock_read=30)
+        timeout = aiohttp.ClientTimeout(total=None, connect=self.connection_timeout, sock_read=self.connection_timeout * 2)
         
         async with self.session.get(self.url, headers=headers, timeout=timeout) as response:
             if response.status in [403, 410]:
@@ -238,7 +242,7 @@ class ResilientDownloader:
         }
         
         retries = 0
-        max_retries = 10
+        max_retries = self.max_retries
         base_delay = 1.0
         loop = asyncio.get_running_loop()
         
@@ -254,7 +258,7 @@ class ResilientDownloader:
             headers['Range'] = f'bytes={start}-{end}'
 
             try:
-                timeout = aiohttp.ClientTimeout(total=None, connect=10, sock_read=30)
+                timeout = aiohttp.ClientTimeout(total=None, connect=self.connection_timeout, sock_read=self.connection_timeout * 2)
                 async with self.session.get(self.url, headers=headers, timeout=timeout) as response:
                     if response.status in [403, 410]:
                         self.status = "Expired"

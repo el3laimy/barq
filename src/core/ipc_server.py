@@ -3,6 +3,8 @@ import logging
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtNetwork import QTcpServer, QHostAddress
 
+from utils.security import redact_sensitive_data
+
 logger = logging.getLogger(__name__)
 
 class IPCServer(QObject):
@@ -11,6 +13,7 @@ class IPCServer(QObject):
     from Chrome extension bridge script or command-line invocations.
     """
     url_received = pyqtSignal(str)
+    request_received = pyqtSignal(dict)
     
     def __init__(self, port=19375, parent=None):
         super().__init__(parent)
@@ -49,10 +52,12 @@ class IPCServer(QObject):
                 continue
             try:
                 msg = json.loads(line)
-                url = msg.get('url')
-                if url:
-                    logger.info(f"IPC Received URL: {url}")
-                    self.url_received.emit(url)
+                if isinstance(msg, dict):
+                    url = msg.get('url')
+                    if url:
+                        logger.info(f"IPC Received URL: {redact_sensitive_data(url)}")
+                        self.url_received.emit(url)
+                        self.request_received.emit(msg)
             except Exception as e:
                 logger.error(f"Error parsing IPC message: {e}")
 

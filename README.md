@@ -41,7 +41,7 @@ Barq Download Manager is actively under development. Core multi-segment HTTP/HTT
 - **Windows**: Windows 10 / 11 (64-bit) — *Verified with NSIS installer and PyInstaller executable*.
 - **Linux**: Ubuntu / Debian / Fedora / Arch Linux — *Verified with PyQt6 runtime and Native Messaging Host*.
 
-*(macOS support is currently unplanned due to platform-specific packaging constraints).*
+- **macOS**: *Planned following Windows & Linux stabilization*.
 
 ---
 

@@ -1,0 +1,11 @@
+[package]
+name = "transport-curl"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+engine-core = { path = "../engine-core" }
+curl = "0.4.46"
+thiserror.workspace = true
+tracing.workspace = true

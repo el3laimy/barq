@@ -13,7 +13,8 @@ DEFAULT_SETTINGS = {
     "segments_per_download": 16,
     "auto_start_clipboard": False,
     "minimize_to_tray": False,
-    "notification_sound": True
+    "notification_sound": True,
+    "use_rust_engine": False
 }
 
 class SettingsManager(QObject):

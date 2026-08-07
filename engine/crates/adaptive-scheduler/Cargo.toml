@@ -1,0 +1,11 @@
+[package]
+name = "adaptive-scheduler"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+engine-core = { path = "../engine-core" }
+serde.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
