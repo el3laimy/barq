@@ -1,0 +1,16 @@
+{
+  "_description": "Missing required field 'protocol'",
+  "requestId": "f6a7b8c9-0123-4567-abcd-ef0123456789",
+  "idempotencyKey": "idem-f6a7b8c901234567890123456789012345",
+  "createdAt": "2026-08-08T01:30:00.000Z",
+  "source": "auto-download",
+  "request": {
+    "url": "https://example.com/file.zip"
+  },
+  "file": {},
+  "browser": {
+    "family": "chrome",
+    "version": "146.0",
+    "profileMode": "normal"
+  }
+}

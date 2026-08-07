@@ -1,0 +1,30 @@
+{
+  "protocol": "barq.browser.v1",
+  "requestId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "idempotencyKey": "idem-a1b2c3d4e5f6789012345678901234567890",
+  "createdAt": "2026-08-08T01:00:00.000Z",
+  "source": "auto-download",
+  "request": {
+    "url": "https://example.com/files/large-file.zip",
+    "finalUrl": "https://cdn.example.com/files/large-file.zip",
+    "method": "GET",
+    "referrer": "https://example.com/downloads",
+    "pageUrl": "https://example.com/downloads",
+    "headers": {
+      "Referer": "https://example.com/downloads",
+      "Accept": "application/octet-stream"
+    }
+  },
+  "file": {
+    "suggestedName": "large-file.zip",
+    "mimeType": "application/zip",
+    "size": 104857600
+  },
+  "browser": {
+    "family": "chrome",
+    "version": "146.0.6789.100",
+    "profileMode": "normal",
+    "tabId": 42,
+    "frameId": 0
+  }
+}

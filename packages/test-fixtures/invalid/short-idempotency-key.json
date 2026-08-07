@@ -1,0 +1,17 @@
+{
+  "_description": "idempotencyKey too short (must be >= 32 chars)",
+  "protocol": "barq.browser.v1",
+  "requestId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "idempotencyKey": "short",
+  "createdAt": "2026-08-08T01:35:00.000Z",
+  "source": "auto-download",
+  "request": {
+    "url": "https://example.com/file.zip"
+  },
+  "file": {},
+  "browser": {
+    "family": "chrome",
+    "version": "146.0",
+    "profileMode": "normal"
+  }
+}

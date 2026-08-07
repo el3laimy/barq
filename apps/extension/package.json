@@ -1,0 +1,23 @@
+{
+  "name": "@barq/extension",
+  "version": "1.0.0",
+  "description": "Barq Browser Integration",
+  "type": "module",
+  "scripts": {
+    "dev:chrome": "wxt dev -b chrome",
+    "dev:firefox": "wxt dev -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "test": "vitest",
+    "lint": "eslint src/ --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "preact": "^10.19.0",
+    "wxt": "^0.18.0",
+    "zod": "^3.22.4",
+    "@barq/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

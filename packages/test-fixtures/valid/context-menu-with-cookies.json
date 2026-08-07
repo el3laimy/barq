@@ -1,0 +1,31 @@
+{
+  "protocol": "barq.browser.v1",
+  "requestId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+  "idempotencyKey": "idem-b2c3d4e5f6a789012345678901234567890",
+  "createdAt": "2026-08-08T01:05:00.000Z",
+  "source": "context-menu",
+  "request": {
+    "url": "https://secure.example.com/reports/annual-report.pdf",
+    "method": "GET",
+    "referrer": "https://secure.example.com/dashboard",
+    "pageUrl": "https://secure.example.com/dashboard",
+    "headers": {
+      "Referer": "https://secure.example.com/dashboard",
+      "Accept": "application/pdf"
+    },
+    "cookieHeader": "session_id=abc123def456; csrf_token=xyz789"
+  },
+  "file": {
+    "suggestedName": "annual-report.pdf",
+    "mimeType": "application/pdf",
+    "size": 5242880
+  },
+  "browser": {
+    "family": "firefox",
+    "version": "130.0",
+    "profileMode": "normal",
+    "cookieStoreId": "firefox-default",
+    "tabId": 7,
+    "frameId": 0
+  }
+}

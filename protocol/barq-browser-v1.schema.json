@@ -1,0 +1,156 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://barq.app/schemas/browser-v1.json",
+  "title": "Barq Browser Protocol v1",
+  "description": "Messages exchanged between barq-extension and barq-native-host",
+  "definitions": {
+    "DownloadEnvelope": {
+      "type": "object",
+      "required": ["protocol", "requestId", "idempotencyKey", "createdAt", "source", "request", "file", "browser"],
+      "properties": {
+        "protocol": { "const": "barq.browser.v1" },
+        "requestId": { "type": "string", "format": "uuid" },
+        "idempotencyKey": { "type": "string", "minLength": 32, "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "source": { "type": "string", "enum": ["auto-download", "context-menu", "toolbar", "media", "blob-relay"] },
+        "request": {
+          "type": "object",
+          "required": ["url"],
+          "properties": {
+            "url": { "type": "string", "format": "uri" },
+            "finalUrl": { "type": "string", "format": "uri" },
+            "method": { "type": "string", "enum": ["GET", "HEAD", "POST"], "default": "GET" },
+            "referrer": { "type": "string", "format": "uri" },
+            "pageUrl": { "type": "string", "format": "uri" },
+            "initiator": { "type": "string" },
+            "headers": { "type": "object", "additionalProperties": { "type": "string" } },
+            "cookieHeader": { "type": "string", "maxLength": 64000 },
+            "body": { "type": "string", "maxLength": 64000 }
+          }
+        },
+        "file": {
+          "type": "object",
+          "properties": {
+            "suggestedName": { "type": "string", "maxLength": 255 },
+            "mimeType": { "type": "string", "maxLength": 255 },
+            "size": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "browser": {
+          "type": "object",
+          "required": ["family", "version", "profileMode"],
+          "properties": {
+            "family": { "type": "string", "enum": ["chrome", "edge", "firefox", "chromium", "brave", "opera", "vivaldi"] },
+            "version": { "type": "string" },
+            "profileMode": { "type": "string", "enum": ["normal", "incognito", "container"] },
+            "cookieStoreId": { "type": "string" },
+            "tabId": { "type": "integer" },
+            "frameId": { "type": "integer" }
+          }
+        },
+        "media": {
+          "type": "object",
+          "properties": {
+            "pageTitle": { "type": "string", "maxLength": 512 },
+            "candidates": {
+              "type": "array",
+              "maxItems": 50,
+              "items": {
+                "type": "object",
+                "required": ["url", "kind"],
+                "properties": {
+                  "url": { "type": "string", "format": "uri" },
+                  "kind": { "type": "string", "enum": ["hls", "dash", "media-file", "page"] }
+                }
+              }
+            },
+            "drmDetected": { "type": "boolean", "default": false }
+          }
+        }
+      }
+    },
+    "HostRequest": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "protocols", "extensionVersion", "browser", "capabilities"],
+          "properties": {
+            "type": { "const": "hello" },
+            "protocols": { "type": "array", "items": { "type": "string" } },
+            "extensionVersion": { "type": "string" },
+            "browser": {
+              "type": "object",
+              "required": ["family", "version"],
+              "properties": {
+                "family": { "type": "string" },
+                "version": { "type": "string" }
+              }
+            },
+            "capabilities": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "correlationId", "envelope"],
+          "properties": {
+            "type": { "const": "prepare_capture" },
+            "correlationId": { "type": "string", "format": "uuid" },
+            "envelope": { "$ref": "#/definitions/DownloadEnvelope" }
+          }
+        }
+      ]
+    },
+    "HostResponse": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "protocol", "hostVersion", "healthy"],
+          "properties": {
+            "type": { "const": "hello_ack" },
+            "protocol": { "const": "barq.browser.v1" },
+            "hostVersion": { "type": "string" },
+            "appVersion": { "type": "string" },
+            "healthy": { "type": "boolean" },
+            "capabilities": { "type": "array", "items": { "type": "string" } },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "maxMessageBytes": { "type": "integer" },
+                "maxCookieBytes": { "type": "integer" }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["status", "correlationId", "transferId", "durable"],
+          "properties": {
+            "status": { "const": "accepted" },
+            "correlationId": { "type": "string" },
+            "transferId": { "type": "string", "format": "uuid" },
+            "durable": { "const": true }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["status", "correlationId", "code", "retryable"],
+          "properties": {
+            "status": { "const": "rejected" },
+            "correlationId": { "type": "string" },
+            "code": {
+              "type": "string",
+              "enum": [
+                "INVALID_REQUEST",
+                "APP_PROTOCOL_TOO_OLD",
+                "UNSUPPORTED_METHOD",
+                "DRM_PROTECTED",
+                "QUEUE_UNAVAILABLE"
+              ]
+            },
+            "retryable": { "type": "boolean" }
+          }
+        }
+      ]
+    }
+  }
+}

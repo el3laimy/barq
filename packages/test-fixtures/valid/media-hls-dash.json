@@ -1,0 +1,40 @@
+{
+  "protocol": "barq.browser.v1",
+  "requestId": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+  "idempotencyKey": "idem-c3d4e5f6a7b89012345678901234567890",
+  "createdAt": "2026-08-08T01:10:00.000Z",
+  "source": "media",
+  "request": {
+    "url": "https://media.example.com/videos/tutorial",
+    "method": "GET",
+    "referrer": "https://media.example.com/courses/intro",
+    "pageUrl": "https://media.example.com/courses/intro",
+    "headers": {
+      "Referer": "https://media.example.com/courses/intro"
+    }
+  },
+  "file": {
+    "mimeType": "application/vnd.apple.mpegurl"
+  },
+  "browser": {
+    "family": "edge",
+    "version": "146.0.2876.50",
+    "profileMode": "normal",
+    "tabId": 15,
+    "frameId": 0
+  },
+  "media": {
+    "pageTitle": "Introduction to Programming — Tutorial",
+    "candidates": [
+      {
+        "url": "https://cdn.example.com/hls/tutorial/master.m3u8",
+        "kind": "hls"
+      },
+      {
+        "url": "https://cdn.example.com/dash/tutorial/manifest.mpd",
+        "kind": "dash"
+      }
+    ],
+    "drmDetected": false
+  }
+}

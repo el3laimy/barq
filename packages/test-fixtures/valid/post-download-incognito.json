@@ -1,0 +1,30 @@
+{
+  "protocol": "barq.browser.v1",
+  "requestId": "e5f6a7b8-9012-3456-efab-567890123456",
+  "idempotencyKey": "idem-e5f6a7b890123456789012345678901234",
+  "createdAt": "2026-08-08T01:20:00.000Z",
+  "source": "auto-download",
+  "request": {
+    "url": "https://example.com/api/export",
+    "method": "POST",
+    "referrer": "https://example.com/dashboard",
+    "pageUrl": "https://example.com/dashboard",
+    "headers": {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Referer": "https://example.com/dashboard"
+    },
+    "body": "format=csv&date_from=2026-01-01&date_to=2026-08-01"
+  },
+  "file": {
+    "suggestedName": "export.csv",
+    "mimeType": "text/csv",
+    "size": 2048000
+  },
+  "browser": {
+    "family": "chrome",
+    "version": "146.0.6789.100",
+    "profileMode": "incognito",
+    "tabId": 99,
+    "frameId": 0
+  }
+}

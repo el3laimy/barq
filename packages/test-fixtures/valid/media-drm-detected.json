@@ -1,0 +1,33 @@
+{
+  "_description": "DRM detected = true, should be rejected by host",
+  "protocol": "barq.browser.v1",
+  "requestId": "d4e5f6a7-b8c9-0123-defa-bcdef0123456",
+  "idempotencyKey": "idem-d4e5f6a7b8c90123456789012345678901",
+  "createdAt": "2026-08-08T01:40:00.000Z",
+  "source": "media",
+  "request": {
+    "url": "https://streaming.example.com/watch/12345",
+    "method": "GET",
+    "pageUrl": "https://streaming.example.com/watch/12345"
+  },
+  "file": {
+    "mimeType": "video/mp4"
+  },
+  "browser": {
+    "family": "chrome",
+    "version": "146.0.6789.100",
+    "profileMode": "normal",
+    "tabId": 25,
+    "frameId": 0
+  },
+  "media": {
+    "pageTitle": "Premium Movie - Streaming Service",
+    "candidates": [
+      {
+        "url": "https://cdn.streaming.example.com/dash/12345/manifest.mpd",
+        "kind": "dash"
+      }
+    ],
+    "drmDetected": true
+  }
+}
