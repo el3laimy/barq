@@ -37,20 +37,18 @@ Section "MainSection" SEC01
     File "assets\icons\barq.ico"
     SetOutPath "$INSTDIR"
 
-    ; Bundle browser integration
-    SetOutPath "$INSTDIR\browser_integration"
-    File /r "browser_integration\*.*"
-    SetOutPath "$INSTDIR"
+    ; Remove the unsafe bridge left by older Barq installers during upgrade.
+    RMDir /r "$INSTDIR\browser_integration"
+    DeleteRegKey HKCU "Software\Google\Chrome\NativeMessagingHosts\com.barq.downloader"
+    DeleteRegKey HKCU "Software\BraveSoftware\Brave-Browser\NativeMessagingHosts\com.barq.downloader"
+    DeleteRegKey HKCU "Software\Microsoft\Edge\NativeMessagingHosts\com.barq.downloader"
+    DeleteRegKey HKCU "Software\Mozilla\NativeMessagingHosts\com.barq.downloader"
 
     ; Create Shortcuts with explicit icon
     CreateShortCut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${EXE_NAME}" "" "$INSTDIR\assets\icons\barq.ico"
     CreateDirectory "$SMPROGRAMS\${APP_NAME}"
     CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${EXE_NAME}" "" "$INSTDIR\assets\icons\barq.ico"
     CreateShortCut "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk" "$INSTDIR\uninstall.exe"
-
-    ; Browser Integration (Run the registration script)
-    DetailPrint "Registering Browser Integration..."
-    nsExec::Exec '"$INSTDIR\browser_integration\install_host.bat"'
 
     ; Write Uninstaller
     WriteUninstaller "$INSTDIR\uninstall.exe"

@@ -26,8 +26,9 @@ impl FileWriter {
         let file = OpenOptions::new()
             .write(true)
             .create(true)
+            .truncate(false)
             .open(&self.file_path)?;
-            
+
         if total_bytes > 0 {
             file.set_len(total_bytes)?;
         }
@@ -35,10 +36,8 @@ impl FileWriter {
     }
 
     pub fn write_at(&self, offset: u64, data: &[u8]) -> Result<(), WriterError> {
-        let mut file = OpenOptions::new()
-            .write(true)
-            .open(&self.file_path)?;
-            
+        let mut file = OpenOptions::new().write(true).open(&self.file_path)?;
+
         file.seek(SeekFrom::Start(offset))?;
         file.write_all(data)?;
         Ok(())
@@ -56,5 +55,18 @@ mod tests {
         let writer = FileWriter::new(temp_file.path());
         assert!(writer.preallocate(1024).is_ok());
         assert!(writer.write_at(0, b"BarqEngineTest").is_ok());
+    }
+
+    #[test]
+    fn preallocate_preserves_existing_bytes_for_resume() {
+        let temp_file = NamedTempFile::new().unwrap();
+        std::fs::write(temp_file.path(), b"Barq").unwrap();
+        let writer = FileWriter::new(temp_file.path());
+
+        writer.preallocate(1024).unwrap();
+
+        let contents = std::fs::read(temp_file.path()).unwrap();
+        assert_eq!(contents.len(), 1024);
+        assert_eq!(&contents[..4], b"Barq");
     }
 }

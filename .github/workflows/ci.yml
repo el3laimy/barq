@@ -36,6 +36,7 @@ jobs:
           python -m unittest discover -s tests -p "test_*.py"
         env:
           PYTHONPATH: src
+          QT_QPA_PLATFORM: offscreen
 
   test-rust:
     name: Build & Test Rust Engine
@@ -63,12 +64,72 @@ jobs:
       - name: Build & Test Rust Workspace
         working-directory: engine
         run: |
-          cargo build --workspace
-          cargo test --workspace
+          cargo build --locked --workspace
+          cargo test --locked --workspace --all-targets
+          cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+
+  test-native-host:
+    name: Build & Test Browser Native Host
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build & Test Native Host
+        working-directory: apps/native-host
+        run: |
+          cargo test --locked
+          cargo clippy --locked --all-targets --all-features -- -D warnings
+
+  test-browser-integration:
+    name: Test Browser Integration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install locked browser dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check protocol and browser capture core
+        run: |
+          pnpm --filter @barq/protocol typecheck
+          pnpm --filter @barq/browser-core typecheck
+          pnpm --filter @barq/extension typecheck
+
+      - name: Test protocol and browser capture core
+        run: |
+          pnpm --filter @barq/protocol test
+          pnpm --filter @barq/browser-core test
+
+      - name: Build Chrome and Firefox extensions
+        run: |
+          pnpm --filter @barq/extension build
+          pnpm --filter @barq/extension build:firefox
 
   build-executables:
     name: Build Native Executables
-    needs: [test-python, test-rust]
+    needs: [test-python, test-rust, test-native-host, test-browser-integration]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

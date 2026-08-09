@@ -1,7 +1,6 @@
 import os
 import asyncio
 import platform
-from collections import deque
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QTableWidget, 
                              QTableWidgetItem, QHeaderView, QProgressBar, QMessageBox, QInputDialog, QMenu,
                              QApplication, QLabel, QFrame, QButtonGroup)
@@ -10,15 +9,27 @@ from PyQt6.QtGui import QDesktopServices, QColor
 import urllib.parse
 
 from core.worker import DownloadWorker
+from core.browser_inbox_watcher import BrowserDownloadRequest
 from core.video_engine import VideoDownloadWorker
 from core.database import DatabaseManager
 from core.utils import FileCategorizer, format_size, format_speed, sanitize_filename, get_unique_filename
 from core.traffic_control import global_limiter
 from ui.clipboard_monitor import ClipboardMonitor
 from core.settings import settings_manager
+from core.download_options import DownloadOptions
+from core.task_start_queue import QueuedDownload, TaskStartQueue
 from ui.new_download_dialog import NewDownloadDialog
 from ui.video_dialog import VideoDownloadDialog
 from core.url_resolver import URLResolver
+
+
+INTERRUPTED_STARTUP_STATUSES = frozenset({"Pending", "Queued", "Initializing", "Downloading"})
+
+
+def recover_startup_status(status: str) -> str:
+    """Never pretend an in-memory worker or queue survived an app restart."""
+    return "Paused" if status in INTERRUPTED_STARTUP_STATUSES else status
+
 
 class DownloadsPage(QWidget):
     global_speed_updated = pyqtSignal(float) # total speed bytes/s
@@ -28,8 +39,9 @@ class DownloadsPage(QWidget):
         self.db = DatabaseManager() # Initialize DB
         
         # Queue System
-        self.download_queue = deque()
+        self.download_queue = TaskStartQueue()
         self.max_concurrent = settings_manager.get("max_concurrent_downloads")
+        self.scheduling_suspended = False
         self.active_category_filter = "All"
         self.active_status_filter = None
         
@@ -159,6 +171,9 @@ class DownloadsPage(QWidget):
         self.workers = {} # db_id -> worker
         self.worker_speeds = {} # db_id -> current_speed
         self.downloads_info = {} # db_id -> metadata dict
+        self.task_options = {} # db_id -> transfer options for this application session
+        self.browser_request_headers = {} # db_id -> in-memory authenticated browser context
+        self.browser_request_context_urls = {} # db_id -> origin that supplied browser context
         self.download_dir = settings_manager.get("download_path")
         if not os.path.exists(self.download_dir):
             try:
@@ -188,7 +203,17 @@ class DownloadsPage(QWidget):
     def load_from_db(self):
         downloads = self.db.get_all_downloads()
         for data in downloads:
-            self.add_row_to_table(data['id'], data['filename'], data['status'], data['url'], data['destination'], size=data.get('size', 0))
+            recovered_status = recover_startup_status(data['status'])
+            if recovered_status != data['status']:
+                self.db.update_status(data['id'], recovered_status)
+            self.add_row_to_table(
+                data['id'],
+                data['filename'],
+                recovered_status,
+                data['url'],
+                data['destination'],
+                size=data.get('size', 0),
+            )
 
     def add_row_to_table(self, db_id, filename, status, url, dest, size=0):
         row = self.table.rowCount()
@@ -297,7 +322,7 @@ class DownloadsPage(QWidget):
         btn_folder.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_folder.clicked.connect(lambda _, did=db_id: self.open_folder(did))
 
-        btn_delete = QPushButton("🗑️")
+        btn_delete = QPushButton("✕")
         btn_delete.setFixedWidth(32)
         btn_delete.setStyleSheet("""
             QPushButton {
@@ -313,7 +338,7 @@ class DownloadsPage(QWidget):
                 color: #FFFFFF;
             }
         """)
-        btn_delete.setToolTip("Delete Task")
+        btn_delete.setToolTip("Remove task from list (keeps downloaded files)")
         btn_delete.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_delete.clicked.connect(lambda _, did=db_id: self.delete_download(did))
 
@@ -352,29 +377,100 @@ class DownloadsPage(QWidget):
             if not config: return
             
             db_id = self.db.add_download(config['url'], config['filename'], config['path'], config['category'])
+            if db_id is None:
+                QMessageBox.warning(self, "Download Error", "Could not save the new download task.")
+                return
             self.add_row_to_table(db_id, config['filename'], "Pending", config['url'], config['path'])
             
             is_video = config.get('is_video', False)
             format_id = config.get('format_id', 'bestvideo+bestaudio/best')
-            self.attempt_start_download(db_id, config['url'], config['path'], is_video=is_video, format_id=format_id)
+            options = DownloadOptions(
+                parts=config.get('segments'),
+                checksum=config.get('checksum'),
+            )
+            self.task_options[db_id] = options
+            self.attempt_start_download(
+                db_id,
+                config['url'],
+                config['path'],
+                is_video=is_video,
+                format_id=format_id,
+                options=options,
+            )
 
-    def attempt_start_download(self, db_id, url, dest, is_video=False, format_id='bestvideo+bestaudio/best'):
-        if len(self.workers) < self.max_concurrent:
-             self.start_worker(db_id, url, dest, is_video=is_video, format_id=format_id)
-        else:
-             self.download_queue.append((db_id, url, dest, is_video, format_id))
-             self.update_status(db_id, "Queued")
+    def add_browser_download(self, browser_request: BrowserDownloadRequest) -> bool:
+        filename = self._browser_filename(browser_request)
+        category = FileCategorizer.get_category(filename)
+        destination_folder = FileCategorizer.get_destination_folder(self.download_dir, category)
+        filename = get_unique_filename(destination_folder, filename)
+        destination = os.path.join(destination_folder, filename)
+
+        db_id = self.db.add_download(browser_request.url, filename, destination, category)
+        if db_id is None:
+            return False
+        self.browser_request_headers[db_id] = dict(browser_request.request_headers)
+        self.browser_request_context_urls[db_id] = browser_request.context_url
+        self.add_row_to_table(db_id, filename, "Pending", browser_request.url, destination, browser_request.file_size or 0)
+        self.attempt_start_download(db_id, browser_request.url, destination)
+        return True
+
+    @staticmethod
+    def _browser_filename(browser_request: BrowserDownloadRequest) -> str:
+        if browser_request.suggested_name:
+            return sanitize_filename(browser_request.suggested_name)
+        url_path = urllib.parse.urlparse(browser_request.url).path
+        return sanitize_filename(os.path.basename(urllib.parse.unquote(url_path)) or 'downloaded_file')
+
+    def attempt_start_download(
+        self,
+        db_id,
+        url,
+        dest,
+        is_video=False,
+        format_id='bestvideo+bestaudio/best',
+        options=None,
+    ):
+        if db_id not in self.downloads_info or db_id in self.workers:
+            return
+        options = options or self.task_options.get(db_id, DownloadOptions())
+        if self.scheduling_suspended:
+            if self.download_queue.enqueue(
+                QueuedDownload(db_id, url, dest, is_video, format_id, options)
+            ):
+                self.update_status(db_id, "Paused")
+        elif len(self.workers) < self.max_concurrent:
+            self.start_worker(
+                db_id,
+                url,
+                dest,
+                is_video=is_video,
+                format_id=format_id,
+                options=options,
+            )
+        elif self.download_queue.enqueue(
+            QueuedDownload(db_id, url, dest, is_video, format_id, options)
+        ):
+            self.update_status(db_id, "Queued")
 
     def process_queue(self):
+        if self.scheduling_suspended:
+            return
         while len(self.workers) < self.max_concurrent and self.download_queue:
-            item = self.download_queue.popleft()
-            if len(item) == 5:
-                db_id, url, dest, is_video, format_id = item
-            else:
-                db_id, url, dest = item[:3]
-                is_video, format_id = False, 'bestvideo+bestaudio/best'
-                
-            self.start_worker(db_id, url, dest, is_video=is_video, format_id=format_id)
+            item = self.download_queue.pop_next()
+            if item is None:
+                return
+            if item.task_id not in self.downloads_info or item.task_id in self.workers:
+                continue
+            if self.downloads_info[item.task_id]['status'] == "Completed":
+                continue
+            self.start_worker(
+                item.task_id,
+                item.url,
+                item.destination,
+                is_video=item.is_video,
+                format_id=item.format_id,
+                options=item.options,
+            )
 
     def get_row_by_id(self, db_id):
         for r in range(self.table.rowCount()):
@@ -383,21 +479,48 @@ class DownloadsPage(QWidget):
                 return r
         return None
 
-    def start_worker(self, db_id, url, dest, is_video=False, format_id='bestvideo+bestaudio/best'):
-        if is_video or self.is_video_stream_url(url):
-            worker = VideoDownloadWorker(url, dest, format_id=format_id)
-        else:
-            worker = DownloadWorker(url, dest)
+    def start_worker(
+        self,
+        db_id,
+        url,
+        dest,
+        is_video=False,
+        format_id='bestvideo+bestaudio/best',
+        options=None,
+    ):
+        if db_id not in self.downloads_info or db_id in self.workers:
+            return
+        options = options or self.task_options.get(db_id, DownloadOptions())
+        self.download_queue.discard(db_id)
+        request_headers = self.browser_request_headers.get(db_id)
+        browser_context_url = self.browser_request_context_urls.get(db_id)
+        try:
+            if is_video or (request_headers is None and self.is_video_stream_url(url)):
+                worker = VideoDownloadWorker(url, dest, format_id=format_id)
+            else:
+                worker = DownloadWorker(
+                    url,
+                    dest,
+                    request_headers=request_headers,
+                    browser_context_url=browser_context_url,
+                    parts=options.parts,
+                    checksum=options.checksum,
+                )
 
-        worker.started.connect(lambda u, s, did=db_id: self.update_initial_size(did, s))
-        worker.progress_updated.connect(lambda c, t, s, did=db_id: self.update_progress(did, c, t, s))
-        worker.status_changed.connect(lambda s, did=db_id: self.update_status(did, s))
-        worker.task_finished.connect(lambda did=db_id: self.download_finished(did))
-        worker.finished.connect(lambda did=db_id: self.cleanup_worker(did)) 
-        worker.error_occurred.connect(lambda e, did=db_id: self.download_error(did, e))
-        
-        self.workers[db_id] = worker
-        worker.start()
+            worker.started.connect(lambda u, s, did=db_id: self.update_initial_size(did, s))
+            worker.progress_updated.connect(lambda c, t, s, did=db_id: self.update_progress(did, c, t, s))
+            worker.status_changed.connect(lambda s, did=db_id: self.update_status(did, s))
+            worker.task_finished.connect(lambda did=db_id: self.download_finished(did))
+            worker.finished.connect(lambda did=db_id: self.cleanup_worker(did))
+            worker.error_occurred.connect(lambda e, did=db_id: self.download_error(did, e))
+
+            self.workers[db_id] = worker
+            worker.start()
+        except Exception as error:
+            self.workers.pop(db_id, None)
+            self.worker_speeds[db_id] = 0
+            self.update_status(db_id, "Error")
+            print(f"Could not start download {db_id}: {error}")
         
     def on_action_toggle_clicked(self, db_id):
         if db_id in self.downloads_info:
@@ -414,7 +537,7 @@ class DownloadsPage(QWidget):
         if db_id not in self.workers:
             if db_id in self.downloads_info:
                 info = self.downloads_info[db_id]
-                self.start_worker(db_id, info['url'], info['dest'])
+                self.attempt_start_download(db_id, info['url'], info['dest'])
             return
 
         worker = self.workers[db_id]
@@ -488,6 +611,9 @@ class DownloadsPage(QWidget):
     def download_finished(self, db_id):
         self.update_status(db_id, "Completed")
         self.worker_speeds[db_id] = 0
+        self.browser_request_headers.pop(db_id, None)
+        self.browser_request_context_urls.pop(db_id, None)
+        self.task_options.pop(db_id, None)
         if db_id in self.downloads_info:
             self.downloads_info[db_id]['progress'] = 100
         
@@ -504,7 +630,8 @@ class DownloadsPage(QWidget):
              del self.workers[db_id]
              
         self.worker_speeds[db_id] = 0
-        self.process_queue()
+        if not self.scheduling_suspended:
+            self.process_queue()
 
     def download_error(self, db_id, error):
         self.update_status(db_id, "Error")
@@ -530,7 +657,8 @@ class DownloadsPage(QWidget):
         open_folder_action = menu.addAction("📂 Open Folder")
         copy_url_action = menu.addAction("📋 Copy URL")
         verify_action = menu.addAction("🔐 Set Hash Verification (MD5/SHA256)")
-        delete_action = menu.addAction("🗑️ Delete Download")
+        remove_action = menu.addAction("✕ Remove from List")
+        delete_files_action = menu.addAction("🗑️ Permanently Delete Download Files…")
         
         action = menu.exec(self.table.viewport().mapToGlobal(pos))
         
@@ -541,8 +669,10 @@ class DownloadsPage(QWidget):
                 QApplication.clipboard().setText(self.downloads_info[db_id]['url'])
         elif action == verify_action:
             self.set_hash_dialog(db_id)
-        elif action == delete_action:
+        elif action == remove_action:
             self.delete_download(db_id)
+        elif action == delete_files_action:
+            self.delete_download_files(db_id)
 
     def open_folder(self, db_id):
         if db_id in self.downloads_info:
@@ -554,21 +684,45 @@ class DownloadsPage(QWidget):
                 QMessageBox.warning(self, "Error", "Folder does not exist.")
 
     def delete_download(self, db_id):
+        """Remove a task from Barq while preserving all files by default."""
+        self._remove_download(db_id, delete_files=False)
+
+    def delete_download_files(self, db_id):
+        """Permanently remove a task and its final, partial, and state files."""
+        if db_id not in self.downloads_info:
+            return
+        response = QMessageBox.question(
+            self,
+            "Permanently delete download files?",
+            "This permanently deletes the completed file, partial file, and resume state. "
+            "This cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if response == QMessageBox.StandardButton.Yes:
+            self._remove_download(db_id, delete_files=True)
+
+    def _remove_download(self, db_id, delete_files):
+        self.download_queue.discard(db_id)
         if db_id in self.workers:
             worker = self.workers[db_id]
             worker.stop()
             worker.wait()
             
         self.db.delete_download(db_id)
+        self.browser_request_headers.pop(db_id, None)
+        self.browser_request_context_urls.pop(db_id, None)
+        self.task_options.pop(db_id, None)
         
         if db_id in self.downloads_info:
              dest = self.downloads_info[db_id]['dest']
-             try:
-                if os.path.exists(dest) and not os.path.isdir(dest): os.remove(dest)
-                if os.path.exists(dest + ".part"): os.remove(dest + ".part")
-                if os.path.exists(dest + ".state.json"): os.remove(dest + ".state.json")
-             except Exception as e:
-                print(f"Error deleting file: {e}")
+             if delete_files:
+                 try:
+                    if os.path.exists(dest) and not os.path.isdir(dest): os.remove(dest)
+                    if os.path.exists(dest + ".part"): os.remove(dest + ".part")
+                    if os.path.exists(dest + ".state.json"): os.remove(dest + ".state.json")
+                 except Exception as e:
+                    print(f"Error deleting file: {e}")
              
              del self.downloads_info[db_id]
              
@@ -653,10 +807,15 @@ class DownloadsPage(QWidget):
             self.table.setRowHidden(row, not (text_match and cat_match and status_match))
 
     def pause_all(self):
+        self.scheduling_suspended = True
+        for item in self.download_queue.drain():
+            if item.task_id in self.downloads_info:
+                self.update_status(item.task_id, "Paused")
         for db_id in list(self.workers.keys()):
             self.stop_download(db_id)
 
     def resume_all(self):
+        self.scheduling_suspended = False
         for db_id, info in self.downloads_info.items():
             if db_id not in self.workers and info['status'] != "Completed":
                 self.attempt_start_download(db_id, info['url'], info['dest'])
@@ -702,4 +861,5 @@ class DownloadsPage(QWidget):
     def on_settings_changed(self, new_settings):
         self.max_concurrent = new_settings.get("max_concurrent_downloads", 3)
         self.download_dir = new_settings.get("download_path")
-        self.process_queue()
+        if not self.scheduling_suspended:
+            self.process_queue()

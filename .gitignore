@@ -30,6 +30,11 @@ settings.json.tmp
 # PyInstaller & Build Artifacts
 build/
 dist/
+target/
+**/target/
+.wxt/
+.output/
+node_modules/
 *.egg-info/
 *.manifest
 *.spec.bak

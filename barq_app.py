@@ -12,7 +12,8 @@ if src_path not in sys.path:
 # Enable High DPI scaling (must be set before QApplication)
 os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
 
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QMessageBox
+from core.browser_installer import BrowserIntegrationManager, LegacyBridgeRetirementReport
 from ui.main_window import BarqMainWindow
 from utils.resources import load_app_icon, print_icon_diagnostics
 
@@ -47,6 +48,30 @@ def configure_windows_app_id() -> None:
         print(f"Failed to set Windows AppUserModelID: {exc}")
 
 
+def legacy_extension_remediation_message(
+    retirement_report: LegacyBridgeRetirementReport,
+) -> str | None:
+    if not retirement_report.removed_manifests and not retirement_report.removed_registry_entries:
+        return None
+    return (
+        "A legacy Barq browser registration was removed. Before downloading from "
+        "your browser, disable or remove ‘Barq Download Manager Integration’ from "
+        "that browser's Extensions page. Barq cannot disable browser extensions for you."
+    )
+
+
+def show_legacy_extension_remediation(
+    retirement_report: LegacyBridgeRetirementReport,
+) -> None:
+    remediation_message = legacy_extension_remediation_message(retirement_report)
+    if remediation_message:
+        QMessageBox.warning(
+            None,
+            "Disable the legacy Barq browser extension",
+            remediation_message,
+        )
+
+
 def main() -> int:
     # Print diagnostics if BARQ_DEBUG_ICON=1
     print_icon_diagnostics()
@@ -63,15 +88,12 @@ def main() -> int:
         print("Barq is already running. Focus request sent to active instance.")
         return 0
 
+    # Do this only in the process that owns the UI, so any manual-remediation
+    # warning cannot be lost when a second invocation forwards to an existing app.
+    legacy_retirement_report = BrowserIntegrationManager.retire_legacy_browser_bridge()
+
     # Step 4: Set AppUserModelID BEFORE QApplication
     configure_windows_app_id()
-
-    # Automatically register browser integration native hosts
-    try:
-        from core.browser_installer import BrowserIntegrationManager
-        BrowserIntegrationManager.register_all_native_hosts()
-    except Exception as exc:
-        print(f"Browser integration auto-registration notice: {exc}")
 
     # Step 5: Configure QApplication
     app = QApplication(sys.argv)
@@ -80,6 +102,7 @@ def main() -> int:
     app.setApplicationName("Barq")
     app.setApplicationDisplayName("Barq Download Manager")
     app.setOrganizationName("Barq Project")
+    show_legacy_extension_remediation(legacy_retirement_report)
 
     # Set desktop file name on Linux / Wayland / GNOME for window manager matching
     if sys.platform != "win32":

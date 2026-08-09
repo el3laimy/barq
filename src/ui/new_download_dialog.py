@@ -6,6 +6,7 @@ from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkRepl
 import os
 import urllib.parse
 from core.settings import settings_manager
+from core.download_options import parse_checksum
 from core.utils import FileCategorizer, format_size, sanitize_filename
 from core.url_resolver import URLResolver
 
@@ -107,7 +108,7 @@ class NewDownloadDialog(QDialog):
         # Segment Threads
         self.segments_spin = QSpinBox()
         self.segments_spin.setRange(1, 32)
-        self.segments_spin.setValue(16)
+        self.segments_spin.setValue(settings_manager.get("segments_per_download", 16))
         form_layout.addRow("Parallel Threads:", self.segments_spin)
 
         # Optional Hash Verification
@@ -211,6 +212,12 @@ class NewDownloadDialog(QDialog):
         if not url or not filename or not path:
             QMessageBox.warning(self, "Validation Error", "URL Source, Filename, and Save Directory are required.")
             return
+
+        try:
+            checksum = parse_checksum(self.hash_input.text())
+        except ValueError as error:
+            QMessageBox.warning(self, "Validation Error", str(error))
+            return
             
         full_dest = os.path.join(path, filename) if (os.path.isdir(path) or not path.endswith(filename)) else path
 
@@ -220,6 +227,6 @@ class NewDownloadDialog(QDialog):
             "path": full_dest,
             "category": self.category_label.text(),
             "segments": self.segments_spin.value(),
-            "hash": self.hash_input.text().strip()
+            "checksum": checksum,
         }
         self.accept()

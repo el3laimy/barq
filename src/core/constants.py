@@ -9,6 +9,6 @@ APP_VERSION = "1.0.0"
 ORGANIZATION_NAME = "Barq Project"
 ORGANIZATION_DOMAIN = "barq.project"
 
-NATIVE_HOST_NAME = "com.barq.downloader"
+NATIVE_HOST_NAME = "app.barq.browser"
 IPC_PORT = 19375
 DEFAULT_THEME = "Dark Glass"

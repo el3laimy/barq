@@ -10,8 +10,6 @@ a = Analysis(
     pathex=[str(project_root)],
     binaries=[],
     datas=[
-        ('src', 'src'),
-        ('browser_integration', 'browser_integration'),
         (str(project_root / 'assets' / 'icons' / 'barq.ico'), 'assets/icons'),
         (str(project_root / 'assets' / 'icons' / 'barq_256.png'), 'assets/icons'),
         ('logo.png', '.'),

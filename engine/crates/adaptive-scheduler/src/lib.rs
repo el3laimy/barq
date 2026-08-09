@@ -29,19 +29,25 @@ pub struct DynamicRangeQueue {
 
 impl DynamicRangeQueue {
     pub fn new(total_bytes: u64, parts: usize) -> Self {
-        let mut segments = Vec::with_capacity(parts);
         if total_bytes == 0 || parts == 0 {
-            return Self { segments };
+            return Self {
+                segments: Vec::new(),
+            };
         }
 
-        let chunk_size = total_bytes / parts as u64;
-        for i in 0..parts {
-            let start = i as u64 * chunk_size;
-            let end = if i == parts - 1 {
-                total_bytes - 1
-            } else {
-                start + chunk_size - 1
-            };
+        let segment_count = if total_bytes < parts as u64 {
+            total_bytes as usize
+        } else {
+            parts
+        };
+        let chunk_size = total_bytes / segment_count as u64;
+        let extra_bytes = total_bytes % segment_count as u64;
+        let mut segments = Vec::with_capacity(segment_count);
+        let mut start = 0;
+
+        for i in 0..segment_count {
+            let size = chunk_size + u64::from((i as u64) < extra_bytes);
+            let end = start + size - 1;
             segments.push(RangeSegment {
                 id: i,
                 start,
@@ -49,6 +55,7 @@ impl DynamicRangeQueue {
                 current: start,
                 completed: false,
             });
+            start = end + 1;
         }
 
         Self { segments }
@@ -115,5 +122,16 @@ mod tests {
         assert_eq!(queue.segments.len(), 2);
         let seg = stolen.unwrap();
         assert!(seg.start > 0);
+    }
+
+    #[test]
+    fn partitioning_never_creates_empty_segments() {
+        let queue = DynamicRangeQueue::new(3, 8);
+
+        assert_eq!(queue.segments.len(), 3);
+        assert_eq!(queue.segments[0].start, 0);
+        assert_eq!(queue.segments[0].end, 0);
+        assert_eq!(queue.segments[2].start, 2);
+        assert_eq!(queue.segments[2].end, 2);
     }
 }

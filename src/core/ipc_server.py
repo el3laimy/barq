@@ -7,10 +7,18 @@ from utils.security import redact_sensitive_data
 
 logger = logging.getLogger(__name__)
 
+LEGACY_BROWSER_PAYLOAD_FIELDS = frozenset({
+    "cookies",
+    "useragent",
+    "referrer",
+    "filename",
+    "filesize",
+})
+
 class IPCServer(QObject):
     """
     TCP Socket Server listening on 127.0.0.1:19375 to receive download requests
-    from Chrome extension bridge script or command-line invocations.
+    from local command-line invocations and compatibility clients.
     """
     url_received = pyqtSignal(str)
     request_received = pyqtSignal(dict)
@@ -45,21 +53,38 @@ class IPCServer(QObject):
             client_socket.disconnected.connect(lambda: self._on_disconnected(client_socket))
 
     def _read_data(self, client_socket):
-        data = client_socket.readAll().data().decode('utf-8', errors='ignore')
-        lines = data.strip().split('\n')
-        for line in lines:
-            if not line:
+        payload_text = client_socket.readAll().data().decode('utf-8', errors='ignore')
+        for request_line in payload_text.strip().split('\n'):
+            if not request_line:
                 continue
-            try:
-                msg = json.loads(line)
-                if isinstance(msg, dict):
-                    url = msg.get('url')
-                    if url:
-                        logger.info(f"IPC Received URL: {redact_sensitive_data(url)}")
-                        self.url_received.emit(url)
-                        self.request_received.emit(msg)
-            except Exception as e:
-                logger.error(f"Error parsing IPC message: {e}")
+            request = self.parse_request(request_line)
+            if not request:
+                continue
+
+            url = request["url"]
+            logger.info(f"IPC Received URL: {redact_sensitive_data(url)}")
+            self.url_received.emit(url)
+            self.request_received.emit(request)
+
+    @staticmethod
+    def parse_request(request_line: str) -> dict[str, str] | None:
+        """Accept URL-only IPC requests and reject retired browser bridge data."""
+        try:
+            request = json.loads(request_line)
+        except json.JSONDecodeError:
+            logger.warning("Rejected malformed IPC request")
+            return None
+
+        if not isinstance(request, dict):
+            return None
+        if any(field.lower() in LEGACY_BROWSER_PAYLOAD_FIELDS for field in request):
+            logger.warning("Rejected IPC request containing retired browser bridge fields")
+            return None
+
+        url = request.get("url")
+        if not isinstance(url, str) or not url:
+            return None
+        return {"url": url}
 
     def _on_disconnected(self, client_socket):
         if client_socket in self._sockets:

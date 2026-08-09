@@ -10,9 +10,9 @@ export default defineConfig({
     minimum_chrome_version: browser === 'firefox' ? undefined : '120',
     permissions: [
       'nativeMessaging', 'contextMenus', 'storage', 'alarms',
-      'notifications', 'activeTab', 'downloads',
+      'activeTab', 'downloads',
     ],
-    optional_permissions: ['cookies', 'webRequest'],
+    optional_permissions: ['cookies'],
     optional_host_permissions: ['http://*/*', 'https://*/*'],
     action: {
       default_title: 'Barq',
@@ -25,7 +25,6 @@ export default defineConfig({
       gecko: {
         id: 'integration@barq.app',
         strict_min_version: '128.0',
-        data_collection_permissions: { required: ['none'] },
       },
     } : undefined,
   }),

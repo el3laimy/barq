@@ -1,6 +1,7 @@
 import sys
 import os
 import shutil
+import logging
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, 
                              QStackedWidget, QLabel, QVBoxLayout, QFrame,
                              QSystemTrayIcon, QMenu, QToolBar, QStatusBar, QPushButton)
@@ -14,9 +15,13 @@ if src_path not in sys.path:
 
 from ui.styles import STYLESHEET
 from ui.sidebar import Sidebar
+from core.browser_inbox_watcher import BrowserInboxWatcher, browser_inbox_dir
 from core.ipc_server import IPCServer
 from core.constants import APP_NAME, APP_SHORT_NAME, APP_PROSE_NAME, ORGANIZATION_NAME, IPC_PORT
 from utils.resources import load_app_icon
+
+
+logger = logging.getLogger(__name__)
 
 
 class BarqMainWindow(QMainWindow):
@@ -78,6 +83,9 @@ class BarqMainWindow(QMainWindow):
         # Initialize All Page Views
         self.init_pages()
 
+        # The browser host persists first; the UI only receives validated, claimed envelopes.
+        self.browser_inbox_watcher = self._start_browser_inbox_watcher()
+
         # Start IPC Server
         self.ipc_server = IPCServer(port=IPC_PORT, parent=self)
         self.ipc_server.url_received.connect(self.handle_ipc_url)
@@ -87,6 +95,23 @@ class BarqMainWindow(QMainWindow):
         self.show_window()
         if hasattr(self, 'page_all_downloads'):
             self.page_all_downloads.add_download(url)
+
+    def handle_browser_download(self, browser_request):
+        self.show_window()
+        return self.page_all_downloads.add_browser_download(browser_request)
+
+    def _start_browser_inbox_watcher(self):
+        try:
+            watcher = BrowserInboxWatcher(
+                browser_inbox_dir(),
+                parent=self,
+                delivery_handler=self.handle_browser_download,
+            )
+        except ValueError:
+            logger.error('Browser inbox configuration is invalid; browser handoff is disabled')
+            return None
+        watcher.start()
+        return watcher
 
     def setup_header_toolbar(self):
         toolbar = QToolBar("Main Controls Toolbar")

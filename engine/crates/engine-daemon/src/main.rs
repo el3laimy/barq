@@ -1,10 +1,13 @@
 //! Barq Standalone Download Engine Daemon (`barq-engine`).
 
 use anyhow::Result;
-use ipc_protocol::{decode_client_message, encode_daemon_message, ClientMessage, DaemonMessage};
+use ipc_protocol::{
+    decode_client_message, encode_daemon_message, ClientMessage, DaemonErrorCode, DaemonMessage,
+};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
 use tracing::{error, info};
+use transport_curl::linked_version;
 
 fn redact_url(url: &str) -> String {
     let mut parts = url.splitn(2, '?');
@@ -15,17 +18,17 @@ fn redact_url(url: &str) -> String {
     };
 
     let keywords = ["token", "key", "auth", "password", "secret", "session"];
-    
+
     let redacted_query = query
         .split('&')
         .map(|param| {
             let mut param_parts = param.splitn(2, '=');
             let key = param_parts.next().unwrap_or("");
             let val = param_parts.next();
-            
+
             let key_lower = key.to_lowercase();
             let is_sensitive = keywords.iter().any(|k| key_lower.contains(k));
-            
+
             if is_sensitive && val.is_some() {
                 format!("{}={}", key, "[REDACTED]")
             } else {
@@ -34,7 +37,7 @@ fn redact_url(url: &str) -> String {
         })
         .collect::<Vec<_>>()
         .join("&");
-        
+
     format!("{}?{}", base, redacted_query)
 }
 
@@ -76,42 +79,7 @@ async fn handle_connection(stream: tokio::net::TcpStream) -> Result<()> {
 
         match decode_client_message(&line) {
             Ok(msg) => {
-                let response = match msg {
-                    ClientMessage::Hello { client_version } => {
-                        info!("Handshake received from client v{}", client_version);
-                        DaemonMessage::Capabilities {
-                            daemon_version: "0.1.0".to_string(),
-                            features: vec![
-                                "libcurl-multi".to_string(),
-                                "adaptive-scheduler".to_string(),
-                                "file-writer-prealloc".to_string(),
-                                "sqlite-wal".to_string(),
-                            ],
-                        }
-                    }
-                    ClientMessage::CreateTask { url, destination, .. } => {
-                        info!("Received task creation request for URL: {}", redact_url(&url));
-                        let dest = destination.unwrap_or_else(|| "/tmp/download".to_string());
-                        DaemonMessage::TaskSnapshot {
-                            task_id: "task-001".to_string(),
-                            state: "Pending".to_string(),
-                            progress: 0,
-                            total: 1024 * 1024,
-                            speed: 0.0,
-                        }
-                    }
-                    ClientMessage::ControlTask { task_id, action } => {
-                        info!("Control request for task {}: {}", task_id, action);
-                        DaemonMessage::TaskEvent {
-                            task_id,
-                            event_type: "StateChange".to_string(),
-                            message: format!("Action {} applied", action),
-                        }
-                    }
-                    ClientMessage::GetDiagnostics => DaemonMessage::Diagnostics {
-                        info: "Barq Engine Daemon v0.1.0 Healthy".to_string(),
-                    },
-                };
+                let response = daemon_response(msg);
 
                 let encoded = encode_daemon_message(&response)?;
                 writer.write_all(encoded.as_bytes()).await?;
@@ -124,4 +92,80 @@ async fn handle_connection(stream: tokio::net::TcpStream) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn daemon_response(message: ClientMessage) -> DaemonMessage {
+    match message {
+        ClientMessage::Hello { client_version } => {
+            info!("Handshake received from client v{}", client_version);
+            DaemonMessage::Capabilities {
+                daemon_version: "0.1.0".to_string(),
+                features: Vec::new(),
+            }
+        }
+        ClientMessage::CreateTask { url, .. } => {
+            info!(
+                "Rejected task creation request for URL: {}",
+                redact_url(&url)
+            );
+            engine_not_ready_error()
+        }
+        ClientMessage::ControlTask { task_id, action } => {
+            info!("Rejected control request for task {}: {}", task_id, action);
+            engine_not_ready_error()
+        }
+        ClientMessage::GetDiagnostics => DaemonMessage::Diagnostics {
+            info: format!(
+                "Barq Engine Daemon v0.1.0: download execution is not implemented; linked libcurl {} is idle.",
+                linked_version()
+            ),
+        },
+    }
+}
+
+fn engine_not_ready_error() -> DaemonMessage {
+    DaemonMessage::Error {
+        code: DaemonErrorCode::EngineNotReady,
+        message: "Download execution is not implemented in this daemon release.".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn create_task_is_rejected_until_download_lifecycle_exists() {
+        let response = daemon_response(ClientMessage::CreateTask {
+            url: "https://example.com/archive.zip".to_string(),
+            destination: Some("/tmp/archive.zip".to_string()),
+            cookies: None,
+            referrer: None,
+            user_agent: None,
+        });
+
+        assert!(matches!(
+            response,
+            DaemonMessage::Error {
+                code: DaemonErrorCode::EngineNotReady,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn control_task_is_rejected_until_download_lifecycle_exists() {
+        let response = daemon_response(ClientMessage::ControlTask {
+            task_id: "unimplemented-task".to_string(),
+            action: "Pause".to_string(),
+        });
+
+        assert!(matches!(
+            response,
+            DaemonMessage::Error {
+                code: DaemonErrorCode::EngineNotReady,
+                ..
+            }
+        ));
+    }
 }

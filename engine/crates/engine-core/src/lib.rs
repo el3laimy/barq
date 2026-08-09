@@ -20,24 +20,28 @@ pub struct FileIdentity {
 }
 
 impl FileIdentity {
-    /// Compares this identity with another to determine if they match.
+    /// Returns true only when both observations identify the same byte representation.
     ///
-    /// If there is no identifying information at all (both `etag` and `last_modified`
-    /// are `None`) and content_lengths don't differ, this function deliberately falls back
-    /// to returning `true`. This is a risk for false positives but is an acceptable fallback
-    /// when servers don't provide validation headers.
+    /// Resume and parallel ranges require a matching strong ETag and a known, identical
+    /// content length. A missing or weak validator must restart from byte zero.
     pub fn is_identity_match(&self, other: &FileIdentity) -> bool {
-        if self.content_length > 0 && other.content_length > 0 && self.content_length != other.content_length {
+        if self.content_length == 0
+            || other.content_length == 0
+            || self.content_length != other.content_length
+        {
             return false;
         }
-        if let (Some(e1), Some(e2)) = (&self.etag, &other.etag) {
-            return e1 == e2;
-        }
-        if let (Some(m1), Some(m2)) = (&self.last_modified, &other.last_modified) {
-            return m1 == m2;
-        }
-        true
+
+        matches!(
+            (&self.etag, &other.etag),
+            (Some(left), Some(right)) if is_strong_etag(left) && left == right
+        )
     }
+}
+
+fn is_strong_etag(value: &str) -> bool {
+    let normalized = value.trim();
+    normalized.len() >= 2 && normalized.starts_with('"') && normalized.ends_with('"')
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -95,5 +99,26 @@ mod tests {
             supports_range: true,
         };
         assert!(id1.is_identity_match(&id2));
+    }
+
+    #[test]
+    fn weak_or_missing_validators_cannot_resume() {
+        let strong = FileIdentity {
+            etag: Some("\"12345\"".to_string()),
+            last_modified: Some("Wed, 21 Oct 2015 07:28:00 GMT".to_string()),
+            content_length: 1000,
+            supports_range: true,
+        };
+        let weak = FileIdentity {
+            etag: Some("W/\"12345\"".to_string()),
+            ..strong.clone()
+        };
+        let missing = FileIdentity {
+            etag: None,
+            ..strong.clone()
+        };
+
+        assert!(!strong.is_identity_match(&weak));
+        assert!(!strong.is_identity_match(&missing));
     }
 }

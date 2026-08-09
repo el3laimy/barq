@@ -6,6 +6,8 @@ license.workspace = true
 
 [dependencies]
 engine-core = { path = "../engine-core" }
-sqlite = "0.36"
+sqlite.workspace = true
 thiserror.workspace = true
-tracing.workspace = true
+
+[dev-dependencies]
+tempfile = "3.10"

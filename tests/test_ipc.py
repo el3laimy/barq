@@ -61,15 +61,16 @@ class TestIPCServerAndDatabase(unittest.TestCase):
     def test_ipc_server(self):
         received_urls = []
 
-        server = IPCServer(port=19376) # test port
+        server = IPCServer(port=0)
         server.url_received.connect(lambda url: received_urls.append(url))
         started = server.start()
         self.assertTrue(started)
+        port = server.server.serverPort()
 
         # Send a JSON message over socket
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.connect(('127.0.0.1', 19376))
+            s.connect(('127.0.0.1', port))
             payload = json.dumps({"url": "http://example.com/ipc_test.mp4"}) + "\n"
             s.sendall(payload.encode('utf-8'))
             s.close()
@@ -84,6 +85,17 @@ class TestIPCServerAndDatabase(unittest.TestCase):
             self.assertEqual(received_urls[0], "http://example.com/ipc_test.mp4")
         finally:
             server.stop()
+
+    def test_legacy_browser_payload_is_rejected_without_socket(self):
+        for legacy_field in ("cookies", "userAgent", "referrer", "filename", "fileSize"):
+            with self.subTest(legacy_field=legacy_field):
+                request = json.dumps({"url": "http://example.com/file.zip", legacy_field: "secret"})
+                self.assertIsNone(IPCServer.parse_request(request))
+
+    def test_url_only_payload_is_accepted_without_socket(self):
+        request = IPCServer.parse_request('{"url":"http://example.com/file.zip"}')
+
+        self.assertEqual(request, {"url": "http://example.com/file.zip"})
 
 if __name__ == '__main__':
     unittest.main()

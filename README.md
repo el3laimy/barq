@@ -9,7 +9,7 @@
 ---
 
 ## 📌 Development Status Notice
-Barq Download Manager is actively under development. Core multi-segment HTTP/HTTPS acceleration, resilient stream recovery, video link extraction, and browser integration are fully functional.
+Barq Download Manager is actively under development. Core multi-segment HTTP/HTTPS acceleration, resilient stream recovery, and video link extraction are under active verification.
 
 ---
 
@@ -17,15 +17,14 @@ Barq Download Manager is actively under development. Core multi-segment HTTP/HTT
 
 ### Implemented Features
 - **⚡ Multi-Segment Download Engine**: Dynamic chunk allocation with up to 32 parallel HTTP/HTTPS connections per file.
-- **🛡️ Resilient Recovery & Resume**: Header fingerprint verification and stream-draining rescue for non-range standard downloads.
+- **🛡️ Resilient Recovery & Resume**: Resume is enabled only when a server supplies the same strong ETag; otherwise Barq safely starts a single stream from the beginning.
 - **🎥 Media & Video Extraction Engine**: Integrated video stream detection powered by `yt-dlp` and `ffmpeg`.
-- **🌐 Native Browser Integration**: Intercepts browser downloads and context menus (`com.barq.downloader`).
 - **🔌 Inter-Process Communication (IPC)**: Local TCP socket server (`19375`) allowing single-instance URL dispatch.
-- **🎨 Dark Glass UI Theme**: High-contrast, hardware-accelerated PyQt6 user interface with real-time speed graphs (`pyqtgraph`).
+- **🎨 Dark Glass UI Theme**: High-contrast PyQt6 user interface with real-time speed graphs (`pyqtgraph`).
 - **💾 Local SQLite Telemetry**: Persistent SQLite database storage for download state, history, and category organization.
 
 ### Planned & Experimental Features
-- **🌐 Full Cross-Browser Extension Store Package**: Pre-packaged Chrome & Firefox Web Store extensions.
+- **🌐 Secure Browser Integration**: Source implementation of the `app.barq.browser` native-host and browser extension, under integration testing.
 - **🔄 Bandwidth Scheduling & Speed Limit Rules**: Dynamic time-based bandwidth capping.
 
 ---
@@ -38,8 +37,8 @@ Barq Download Manager is actively under development. Core multi-segment HTTP/HTT
 
 ## 🖥️ Supported Operating Systems
 
-- **Windows**: Windows 10 / 11 (64-bit) — *Verified with NSIS installer and PyInstaller executable*.
-- **Linux**: Ubuntu / Debian / Fedora / Arch Linux — *Verified with PyQt6 runtime and Native Messaging Host*.
+- **Windows**: Windows 10 / 11 (64-bit) — packaging definitions are present; signed-release validation is pending.
+- **Linux**: Ubuntu / Debian / Fedora / Arch Linux — source-runtime validation is ongoing.
 
 - **macOS**: *Planned following Windows & Linux stabilization*.
 
@@ -49,7 +48,7 @@ Barq Download Manager is actively under development. Core multi-segment HTTP/HTT
 
 ### Prerequisites
 - Python 3.10 or higher
-- `ffmpeg` (required for video merging with `yt-dlp`)
+- `ffmpeg` is resolved through `imageio-ffmpeg` when available; an external installation may still be needed for some media workflows.
 
 ### Quickstart
 
@@ -115,23 +114,9 @@ Barq Download Manager is actively under development. Core multi-segment HTTP/HTT
 
 ---
 
-## 🌐 Browser Integration Setup
+## 🌐 Browser Integration
 
-Barq connects with web browsers using Manifest V3 Native Messaging (`com.barq.downloader`).
-
-### Registration Steps
-
-- **Windows**:
-  Run `browser_integration/install_host.bat` (or `.\install_host.bat` in PowerShell).
-
-- **Linux**:
-  Make executable and run `browser_integration/install_host_linux.sh`:
-  ```bash
-  chmod +x browser_integration/install_host_linux.sh
-  ./browser_integration/install_host_linux.sh
-  ```
-
-> **Note**: Update `browser_integration/host.json` with your Chrome Extension ID under `allowed_origins`.
+The retired Python browser bridge is not bundled or registered by current desktop builds. At startup, Barq removes only verified `com.barq.downloader` manifests at known legacy locations and, on Windows, only the matching per-user host keys. If Barq reports that it removed one, manually disable or remove **Barq Download Manager Integration** from the browser's Extensions page before starting browser downloads; Barq does not modify browser extensions automatically. The secure `app.barq.browser` source is not yet included in a signed installer or browser-store package; setup instructions will be published with those artifacts.
 
 ---
 
@@ -146,12 +131,6 @@ barq/
 ├── build_executable.spec       # PyInstaller Spec configuration
 ├── requirements.txt            # Runtime dependencies
 ├── requirements-dev.txt        # Development dependencies
-├── browser_integration/        # Native Messaging Host & Chrome Extension files
-│   ├── background.js           # Extension Service Worker
-│   ├── bridge.py               # Native Messaging bridge script
-│   ├── host.json               # Native Messaging host manifest
-│   ├── install_host.bat        # Windows host installer
-│   └── install_host_linux.sh  # Linux host installer
 ├── src/
 │   ├── core/                   # Downloader logic, database, IPC, settings, & constants
 │   │   ├── constants.py        # Centralized application metadata
@@ -175,7 +154,7 @@ barq/
 
 ## ⚠️ Known Limitations
 
-- **Browser Extension Publishing**: The extension included in `browser_integration/` must be loaded unpacked in developer mode until published on the Web Store.
+- **Browser Integration Packaging**: Signed installer and browser-store artifacts for the secure integration are not available yet.
 - **Server Side Limits**: Download acceleration depends on remote server support for HTTP `Range` requests.
 
 ---
