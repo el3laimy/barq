@@ -319,6 +319,7 @@ class BrowserInboxWatcher(QObject):
         self.inbox_dir = inbox_dir
         self.quarantine_dir = inbox_dir / 'quarantine'
         self.delivery_handler = delivery_handler
+        self._drain_in_progress = False
         self.timer = QTimer(self)
         self.timer.setInterval(500)
         self.timer.timeout.connect(self.drain)
@@ -336,17 +337,24 @@ class BrowserInboxWatcher(QObject):
         self.timer.stop()
 
     def drain(self) -> None:
-        try:
-            self._prepare_directories()
-        except OSError:
-            logger.error('Browser inbox is unavailable; browser handoff is paused')
+        if self._drain_in_progress:
             return
 
-        self._recover_claimed_envelopes()
-        for envelope_path in sorted(self.inbox_dir.glob('*.json')):
-            claimed_path = self._claim(envelope_path)
-            if claimed_path is not None:
-                self._deliver_claimed_envelope(claimed_path)
+        self._drain_in_progress = True
+        try:
+            try:
+                self._prepare_directories()
+            except OSError:
+                logger.error('Browser inbox is unavailable; browser handoff is paused')
+                return
+
+            self._recover_claimed_envelopes()
+            for envelope_path in sorted(self.inbox_dir.glob('*.json')):
+                claimed_path = self._claim(envelope_path)
+                if claimed_path is not None:
+                    self._deliver_claimed_envelope(claimed_path)
+        finally:
+            self._drain_in_progress = False
 
     def _recover_claimed_envelopes(self) -> None:
         for claimed_path in sorted(self.inbox_dir.glob('*.processing')):

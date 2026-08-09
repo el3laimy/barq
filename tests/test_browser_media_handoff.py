@@ -117,6 +117,80 @@ class TestBrowserMediaHandoff(unittest.TestCase):
         self.assertTrue(opts.get("no_warnings"))
         self.assertEqual(opts.get("http_headers"), headers)
 
+    def test_inbox_watcher_drain_reentrancy_guard(self):
+        from pathlib import Path
+        from core.browser_inbox_watcher import BrowserInboxWatcher
+
+        watcher = BrowserInboxWatcher(Path("/tmp/fake_inbox"))
+        watcher._drain_in_progress = True
+
+        with patch.object(watcher, "_prepare_directories") as mock_prep:
+            watcher.drain()
+            mock_prep.assert_not_called()
+
+        watcher._drain_in_progress = False
+
+    def test_normal_direct_download_resume_uses_download_worker(self):
+        from ui.downloads_page import DownloadsPage
+
+        dp = MagicMock(spec=DownloadsPage)
+        dp.scheduling_suspended = False
+        dp.max_concurrent = 3
+        dp.downloads_info = {
+            1: {
+                "url": "https://example.com/file.zip",
+                "dest": "/tmp/file.zip",
+                "status": "Paused",
+                "is_video": False,
+                "format_id": "bestvideo+bestaudio/best",
+            }
+        }
+        dp.workers = {}
+        dp.task_options = {}
+
+        # Test attempt_start_download invocation logic
+        DownloadsPage.attempt_start_download(
+            dp, 1, "https://example.com/file.zip", "/tmp/file.zip"
+        )
+        dp.start_worker.assert_called_once_with(
+            1,
+            "https://example.com/file.zip",
+            "/tmp/file.zip",
+            is_video=False,
+            format_id="bestvideo+bestaudio/best",
+            options=unittest.mock.ANY,
+        )
+
+    def test_media_download_resume_uses_video_download_worker_and_preserves_format(self):
+        from ui.downloads_page import DownloadsPage
+
+        dp = MagicMock(spec=DownloadsPage)
+        dp.scheduling_suspended = False
+        dp.max_concurrent = 3
+        dp.downloads_info = {
+            2: {
+                "url": "https://www.youtube.com/watch?v=123",
+                "dest": "/tmp/video.mp4",
+                "status": "Paused",
+                "is_video": True,
+                "format_id": "137+140",
+            }
+        }
+        dp.workers = {}
+        dp.task_options = {}
+
+        DownloadsPage.attempt_start_download(
+            dp, 2, "https://www.youtube.com/watch?v=123", "/tmp/video.mp4"
+        )
+        dp.start_worker.assert_called_once_with(
+            2,
+            "https://www.youtube.com/watch?v=123",
+            "/tmp/video.mp4",
+            is_video=True,
+            format_id="137+140",
+            options=unittest.mock.ANY,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,6 @@
 import os
 import asyncio
+import logging
 import platform
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QTableWidget, 
                              QTableWidgetItem, QHeaderView, QProgressBar, QMessageBox, QInputDialog, QMenu,
@@ -21,6 +22,8 @@ from core.task_start_queue import QueuedDownload, TaskStartQueue
 from ui.new_download_dialog import NewDownloadDialog
 from ui.video_dialog import VideoDownloadDialog
 from core.url_resolver import URLResolver
+
+logger = logging.getLogger(__name__)
 
 
 INTERRUPTED_STARTUP_STATUSES = frozenset({"Pending", "Queued", "Initializing", "Downloading"})
@@ -247,9 +250,12 @@ class DownloadsPage(QWidget):
                 self.db.update_status(db_id, status, size=real_size)
 
         # Metadata
+        existing_info = self.downloads_info.get(db_id, {})
         self.downloads_info[db_id] = {
             'url': url, 'dest': full_file_path, 'status': status, 'id': db_id, 'category': category, 'size': real_size,
-            'progress': 100 if status == "Completed" else 0, 'speed': 0
+            'progress': 100 if status == "Completed" else 0, 'speed': 0,
+            'is_video': existing_info.get('is_video', False),
+            'format_id': existing_info.get('format_id', 'bestvideo+bestaudio/best'),
         }
         
         # File Size formatting
@@ -384,6 +390,9 @@ class DownloadsPage(QWidget):
             
             is_video = config.get('is_video', False)
             format_id = config.get('format_id', 'bestvideo+bestaudio/best')
+            if db_id in self.downloads_info:
+                self.downloads_info[db_id]['is_video'] = is_video
+                self.downloads_info[db_id]['format_id'] = format_id
             options = DownloadOptions(
                 parts=config.get('segments'),
                 checksum=config.get('checksum'),
@@ -456,6 +465,10 @@ class DownloadsPage(QWidget):
             is_video = config.get("is_video", True)
             format_id = config.get("format_id", "bestvideo+bestaudio/best")
 
+            if db_id in self.downloads_info:
+                self.downloads_info[db_id]["is_video"] = is_video
+                self.downloads_info[db_id]["format_id"] = format_id
+
             self.attempt_start_download(
                 db_id,
                 config["url"],
@@ -481,12 +494,24 @@ class DownloadsPage(QWidget):
         db_id,
         url,
         dest,
-        is_video=False,
-        format_id='bestvideo+bestaudio/best',
+        is_video=None,
+        format_id=None,
         options=None,
     ):
         if db_id not in self.downloads_info or db_id in self.workers:
             return
+
+        info = self.downloads_info[db_id]
+        if is_video is None:
+            is_video = info.get("is_video", False)
+        else:
+            info["is_video"] = is_video
+
+        if format_id is None:
+            format_id = info.get("format_id", "bestvideo+bestaudio/best")
+        else:
+            info["format_id"] = format_id
+
         options = options or self.task_options.get(db_id, DownloadOptions())
         if self.scheduling_suspended:
             if self.download_queue.enqueue(
@@ -592,7 +617,13 @@ class DownloadsPage(QWidget):
         if db_id not in self.workers:
             if db_id in self.downloads_info:
                 info = self.downloads_info[db_id]
-                self.attempt_start_download(db_id, info['url'], info['dest'])
+                self.attempt_start_download(
+                    db_id,
+                    info['url'],
+                    info['dest'],
+                    is_video=info.get('is_video', False),
+                    format_id=info.get('format_id', 'bestvideo+bestaudio/best'),
+                )
             return
 
         worker = self.workers[db_id]
@@ -600,7 +631,13 @@ class DownloadsPage(QWidget):
             self.stop_download(db_id)
         else:
             info = self.downloads_info[db_id]
-            self.attempt_start_download(db_id, info['url'], info['dest'])
+            self.attempt_start_download(
+                db_id,
+                info['url'],
+                info['dest'],
+                is_video=info.get('is_video', False),
+                format_id=info.get('format_id', 'bestvideo+bestaudio/best'),
+            )
 
     def update_initial_size(self, db_id, size):
         row = self.get_row_by_id(db_id)
@@ -873,7 +910,13 @@ class DownloadsPage(QWidget):
         self.scheduling_suspended = False
         for db_id, info in self.downloads_info.items():
             if db_id not in self.workers and info['status'] != "Completed":
-                self.attempt_start_download(db_id, info['url'], info['dest'])
+                self.attempt_start_download(
+                    db_id,
+                    info['url'],
+                    info['dest'],
+                    is_video=info.get('is_video', False),
+                    format_id=info.get('format_id', 'bestvideo+bestaudio/best'),
+                )
 
     def stop_all(self):
         self.pause_all()

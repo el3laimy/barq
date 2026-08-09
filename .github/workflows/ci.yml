@@ -117,10 +117,11 @@ jobs:
           pnpm --filter @barq/browser-core typecheck
           pnpm --filter @barq/extension typecheck
 
-      - name: Test protocol and browser capture core
+      - name: Test protocol, browser core, and extension
         run: |
           pnpm --filter @barq/protocol test
           pnpm --filter @barq/browser-core test
+          pnpm --filter @barq/extension test
 
       - name: Build Chrome and Firefox extensions
         run: |
