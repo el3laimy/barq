@@ -14,6 +14,8 @@ const LOCK_ATTEMPTS: usize = 20;
 const LOCK_WAIT: Duration = Duration::from_millis(25);
 
 #[cfg(windows)]
+const MOVEFILE_REPLACE_EXISTING: u32 = 0x0000_0001;
+#[cfg(windows)]
 const MOVEFILE_WRITE_THROUGH: u32 = 0x0000_0008;
 
 #[cfg(windows)]
@@ -119,7 +121,7 @@ fn durable_rename(source: &Path, destination: &Path) -> Result<()> {
             move_file_ex_w(
                 source_wide.as_ptr(),
                 destination_wide.as_ptr(),
-                MOVEFILE_WRITE_THROUGH,
+                MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH,
             )
         } == 0
         {
