@@ -67,6 +67,14 @@ class BrowserDownloadRequest:
     file_size: int | None
     request_headers: dict[str, str]
 
+    source: str = "auto-download"
+    page_url: str | None = None
+    media_page_title: str | None = None
+
+    @property
+    def is_media(self) -> bool:
+        return self.source == "media"
+
 
 def browser_inbox_dir() -> Path:
     """Return the durable inbox shared with the native host."""
@@ -100,10 +108,11 @@ def parse_browser_envelope(payload: object) -> BrowserDownloadRequest:
     envelope = _require_mapping(payload, 'invalid_envelope')
     _validate_envelope_identity(envelope)
     _validate_browser(envelope.get('browser'))
-    _validate_media(envelope.get('media'))
+    media_page_title = _validate_media(envelope.get('media'))
 
     request = _require_mapping(envelope.get('request'), 'invalid_request')
     download_url, context_url = _download_url(request)
+    page_url = _validate_optional_page_url(request.get('pageUrl'))
     request_headers = _request_headers(request)
     suggested_name, file_size = _file_details(envelope.get('file'))
     return BrowserDownloadRequest(
@@ -112,6 +121,9 @@ def parse_browser_envelope(payload: object) -> BrowserDownloadRequest:
         suggested_name=suggested_name,
         file_size=file_size,
         request_headers=request_headers,
+        source=envelope['source'],
+        page_url=page_url,
+        media_page_title=media_page_title,
     )
 
 
@@ -166,15 +178,29 @@ def _validate_browser(value: object) -> None:
         raise BrowserEnvelopeError('invalid_browser')
 
 
-def _validate_media(value: object) -> None:
+def _validate_media(value: object) -> str | None:
     if value is None:
-        return
+        return None
     media = _require_mapping(value, 'invalid_media')
     drm_detected = media.get('drmDetected', False)
     if not isinstance(drm_detected, bool):
         raise BrowserEnvelopeError('invalid_media')
     if drm_detected:
         raise BrowserEnvelopeError('drm_protected')
+
+    page_title = media.get('pageTitle')
+    if page_title is not None:
+        if not isinstance(page_title, str) or len(page_title) > 512 or any(
+            unicodedata.category(c) == 'Cc' for c in page_title
+        ):
+            raise BrowserEnvelopeError('invalid_media')
+    return page_title
+
+
+def _validate_optional_page_url(value: object) -> str | None:
+    if value is None:
+        return None
+    return _valid_http_url(value, 'invalid_page_url')
 
 
 def _download_url(request: Mapping[str, Any]) -> tuple[str, str]:

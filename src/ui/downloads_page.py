@@ -399,6 +399,11 @@ class DownloadsPage(QWidget):
             )
 
     def add_browser_download(self, browser_request: BrowserDownloadRequest) -> bool:
+        if browser_request.is_media:
+            return self._handle_browser_media(browser_request)
+        return self._handle_browser_direct_download(browser_request)
+
+    def _handle_browser_direct_download(self, browser_request: BrowserDownloadRequest) -> bool:
         filename = self._browser_filename(browser_request)
         category = FileCategorizer.get_category(filename)
         destination_folder = FileCategorizer.get_destination_folder(self.download_dir, category)
@@ -413,6 +418,56 @@ class DownloadsPage(QWidget):
         self.add_row_to_table(db_id, filename, "Pending", browser_request.url, destination, browser_request.file_size or 0)
         self.attempt_start_download(db_id, browser_request.url, destination)
         return True
+
+    def _handle_browser_media(self, browser_request: BrowserDownloadRequest) -> bool:
+        media_url = browser_request.page_url or browser_request.url
+
+        try:
+            dialog = VideoDownloadDialog(
+                initial_url=media_url,
+                request_headers=browser_request.request_headers,
+                parent=self,
+            )
+
+            accepted = dialog.exec()
+            if not accepted:
+                return True  # User intentionally cancelled; acknowledge handoff
+
+            config = dialog.download_config
+            if not config:
+                return True
+
+            category = config.get("category", "Video")
+            db_id = self.db.add_download(
+                config["url"], config["filename"], config["path"], category
+            )
+            if db_id is None:
+                return False
+
+            self.browser_request_headers[db_id] = dict(browser_request.request_headers)
+            self.browser_request_context_urls[db_id] = (
+                browser_request.page_url or browser_request.context_url
+            )
+
+            self.add_row_to_table(
+                db_id, config["filename"], "Pending", config["url"], config["path"]
+            )
+
+            is_video = config.get("is_video", True)
+            format_id = config.get("format_id", "bestvideo+bestaudio/best")
+
+            self.attempt_start_download(
+                db_id,
+                config["url"],
+                config["path"],
+                is_video=is_video,
+                format_id=format_id,
+            )
+
+            return True
+        except Exception:
+            logger.error("Could not accept browser media request")
+            return False
 
     @staticmethod
     def _browser_filename(browser_request: BrowserDownloadRequest) -> str:
@@ -496,7 +551,7 @@ class DownloadsPage(QWidget):
         browser_context_url = self.browser_request_context_urls.get(db_id)
         try:
             if is_video or (request_headers is None and self.is_video_stream_url(url)):
-                worker = VideoDownloadWorker(url, dest, format_id=format_id)
+                worker = VideoDownloadWorker(url, dest, format_id=format_id, request_headers=request_headers)
             else:
                 worker = DownloadWorker(
                     url,

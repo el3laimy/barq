@@ -15,6 +15,7 @@ function App() {
   const [cookiePermissionTarget, setCookiePermissionTarget] = useState<CookiePermissionTarget>();
   const [cookieAccessGranted, setCookieAccessGranted] = useState(false);
   const [settingError, setSettingError] = useState('');
+  const [mediaStatus, setMediaStatus] = useState<'idle' | 'analyzing' | 'success' | 'failed'>('idle');
 
   useEffect(() => {
     void loadAutoCaptureSetting(setAutoCaptureEnabled, setSettingError);
@@ -60,9 +61,62 @@ function App() {
     }
   };
 
+  const analyzeCurrentMedia = async () => {
+    setMediaStatus('analyzing');
+    setSettingError('');
+    try {
+      const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
+      if (!activeTab?.id || !activeTab.url) {
+        setMediaStatus('failed');
+        setSettingError('Please open an HTTP or HTTPS media page.');
+        return;
+      }
+
+      const response: { ok?: boolean; reason?: string } = await browser.runtime.sendMessage({
+        type: 'barq.analyze_media',
+        tabId: activeTab.id,
+      });
+
+      if (response?.ok) {
+        setMediaStatus('success');
+      } else {
+        setMediaStatus('failed');
+        setSettingError('Barq desktop integration is unavailable.');
+      }
+    } catch {
+      setMediaStatus('failed');
+      setSettingError('Barq desktop integration is unavailable.');
+    }
+  };
+
   return (
     <div style={{ width: '300px', padding: '16px', fontFamily: 'sans-serif' }}>
       <h2>Barq Integration</h2>
+
+      <div style={{ marginBottom: '16px' }}>
+        <button
+          onClick={analyzeCurrentMedia}
+          disabled={mediaStatus === 'analyzing'}
+          type="button"
+          style={{
+            width: '100%',
+            padding: '10px',
+            backgroundColor: '#00E5FF',
+            color: '#090D16',
+            border: 'none',
+            borderRadius: '6px',
+            fontWeight: 'bold',
+            cursor: mediaStatus === 'analyzing' ? 'default' : 'pointer',
+          }}
+        >
+          {mediaStatus === 'analyzing'
+            ? 'Analyzing...'
+            : mediaStatus === 'success'
+            ? 'Sent to Barq ⚡'
+            : '⚡ Download media with Barq'}
+        </button>
+      </div>
+
       <label style={{ display: 'block', lineHeight: '1.5' }}>
         <input checked={autoCaptureEnabled} onChange={updateAutoCapture} type="checkbox" />
         {' '}Automatically capture eligible downloads
@@ -82,7 +136,7 @@ function App() {
       <p style={{ fontSize: '12px', color: '#666' }}>
         This is requested only for the current site and helps with authenticated downloads.
       </p>
-      {settingError && <p role="alert">{settingError}</p>}
+      {settingError && <p role="alert" style={{ color: '#d32f2f', fontSize: '12px' }}>{settingError}</p>}
       <p style={{ fontSize: '12px', marginTop: '16px', color: '#666' }}>Version 1.0.0</p>
     </div>
   );
