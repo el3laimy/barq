@@ -36,6 +36,13 @@ def _base_envelope() -> dict:
 
 class TestBrowserMediaHandoff(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        import sys
+        from PyQt6.QtWidgets import QApplication
+        if QApplication.instance() is None:
+            cls.app = QApplication(sys.argv)
+
     def test_preserve_media_source(self):
         env = _base_envelope()
         env["source"] = "media"
