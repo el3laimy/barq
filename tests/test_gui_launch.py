@@ -15,6 +15,8 @@ class TestGuiLaunch(unittest.TestCase):
         from ui.main_window import BarqMainWindow
         window = BarqMainWindow()
         self.assertIsNotNone(window)
+        if hasattr(window, 'ipc_server') and window.ipc_server:
+            window.ipc_server.stop()
 
 if __name__ == "__main__":
     unittest.main()
