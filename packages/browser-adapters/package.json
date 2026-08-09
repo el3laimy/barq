@@ -1,0 +1,15 @@
+{
+  "name": "@barq/browser-adapters",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser-specific adapters for Barq extension",
+  "type": "module",
+  "main": "src/adapter.ts",
+  "types": "src/adapter.ts",
+  "dependencies": {
+    "wxt": "^0.18.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

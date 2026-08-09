@@ -6,6 +6,8 @@ settings:
 
 importers:
 
+  .: {}
+
   apps/extension:
     dependencies:
       '@barq/browser-core':
@@ -30,6 +32,16 @@ importers:
       vitest:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@26.2.0)
+
+  packages/browser-adapters:
+    dependencies:
+      wxt:
+        specifier: ^0.18.0
+        version: 0.18.15(@types/node@26.2.0)(rollup@4.62.4)
+    devDependencies:
+      typescript:
+        specifier: ^5.3.3
+        version: 5.9.3
 
   packages/browser-core:
     dependencies:

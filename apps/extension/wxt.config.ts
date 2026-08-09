@@ -14,13 +14,20 @@ export default defineConfig({
     ],
     optional_permissions: ['cookies'],
     optional_host_permissions: ['http://*/*', 'https://*/*'],
+    icons: {
+      16: 'icons/icon-16.png',
+      32: 'icons/icon-32.png',
+      48: 'icons/icon-48.png',
+      128: 'icons/icon-128.png',
+    },
     action: {
       default_title: 'Barq',
-      default_popup: 'entrypoints/popup/index.html',
+      default_icon: {
+        16: 'icons/icon-16.png',
+        32: 'icons/icon-32.png',
+        48: 'icons/icon-48.png',
+      },
     },
-    background: browser === 'firefox'
-      ? { scripts: ['entrypoints/background.js'], service_worker: 'entrypoints/background.js' }
-      : { service_worker: 'entrypoints/background.js', type: 'module' },
     browser_specific_settings: browser === 'firefox' ? {
       gecko: {
         id: 'integration@barq.app',
