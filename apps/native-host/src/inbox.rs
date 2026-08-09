@@ -43,7 +43,9 @@ pub fn sync_parent_directory(path: &Path) -> Result<()> {
     #[cfg(unix)]
     {
         if let Some(parent) = path.parent() {
-            File::open(parent)?.sync_all()?;
+            if let Ok(file) = File::open(parent) {
+                let _ = file.sync_all();
+            }
         }
     }
 
