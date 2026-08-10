@@ -41,25 +41,7 @@ jobs:
       - name: Configure Qt for headless tests
         shell: bash
         run: |
-          QT_PLUGINS="$(python - <<'PY'
-          from pathlib import Path
-          from PyQt6.QtCore import QLibraryInfo
-
-          print(
-              Path(
-                  QLibraryInfo.path(
-                      QLibraryInfo.LibraryPath.PluginsPath
-                  )
-              ).as_posix()
-          )
-          PY
-          )"
-
           echo "QT_QPA_PLATFORM=offscreen" >> "$GITHUB_ENV"
-          echo "QT_QPA_PLATFORM_PLUGIN_PATH=${QT_PLUGINS}" >> "$GITHUB_ENV"
-
-          echo "Qt plugin root: ${QT_PLUGINS}"
-          ls -la "${QT_PLUGINS}/platforms" || dir "${QT_PLUGINS}/platforms"
 
       - name: Run Unit Tests
         run: |
