@@ -38,16 +38,21 @@ jobs:
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y xvfb
 
-      - name: Configure Qt for headless tests
-        shell: bash
+      - name: Run Unit Tests (Linux)
+        if: runner.os == 'Linux'
         run: |
-          echo "QT_QPA_PLATFORM=offscreen" >> "$GITHUB_ENV"
+          xvfb-run -a python -m unittest discover -s tests -p "test_*.py"
+        env:
+          PYTHONPATH: src
+          QT_QPA_PLATFORM: offscreen
 
-      - name: Run Unit Tests
+      - name: Run Unit Tests (Windows)
+        if: runner.os == 'Windows'
         run: |
           python -m unittest discover -s tests -p "test_*.py"
         env:
           PYTHONPATH: src
+          QT_QPA_PLATFORM: offscreen
 
   test-rust:
     name: Build & Test Rust Engine
