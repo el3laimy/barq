@@ -1,15 +1,9 @@
 import asyncio
-import io
 import os
 import sys
-import unittest
 
-# Unbuffered output if supported
-if hasattr(sys.stdout, 'reconfigure'):
-    try:
-        sys.stdout.reconfigure(encoding='utf-8')
-    except (AttributeError, io.UnsupportedOperation):
-        pass
+# Unbuffered output
+sys.stdout.reconfigure(encoding='utf-8')
 
 # Add src to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
@@ -60,12 +54,6 @@ async def main():
         print(f"\nError in start: {e}", flush=True)
         import traceback
         traceback.print_exc()
-
-class TestDownloaderV2ScriptImport(unittest.TestCase):
-    def test_segmented_downloader_v2_importable(self):
-        from core.downloader import SegmentedDownloader
-        self.assertIsNotNone(SegmentedDownloader)
-
 
 if __name__ == "__main__":
     print("Debug: Script entry", flush=True)

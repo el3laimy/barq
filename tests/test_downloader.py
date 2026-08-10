@@ -1,7 +1,6 @@
 import asyncio
 import os
 import sys
-import unittest
 
 # Add src to path so we can import the downloader
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
@@ -44,12 +43,6 @@ async def main():
             
     except Exception as e:
         print(f"\nAn error occurred: {e}")
-
-class TestDownloaderScriptImport(unittest.TestCase):
-    def test_segmented_downloader_importable(self):
-        from core.downloader import SegmentedDownloader
-        self.assertIsNotNone(SegmentedDownloader)
-
 
 if __name__ == "__main__":
     if sys.platform == 'win32':

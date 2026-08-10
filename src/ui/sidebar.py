@@ -142,10 +142,7 @@ class Sidebar(QFrame):
 
         self.collapse_btn = QPushButton("◀" if not HAS_ICONS else "")
         if HAS_ICONS:
-            try:
-                self.collapse_btn.setIcon(qta.icon("fa.angle-double-left", color="#90A4AE"))
-            except Exception:
-                pass
+            self.collapse_btn.setIcon(qta.icon("fa.angle-double-left", color="#90A4AE"))
         self.collapse_btn.setStyleSheet("""
             QPushButton {
                 background: transparent;
@@ -174,12 +171,9 @@ class Sidebar(QFrame):
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.original_text = text
         
-        if HAS_ICONS and ("fa." in icon_name or "fa5s." in icon_name):
-            try:
-                btn.setIcon(qta.icon(icon_name, color="#90A4AE"))
-                btn.setIconSize(QSize(18, 18))
-            except Exception:
-                btn.setText(f"  {text}")
+        if HAS_ICONS and "fa." in icon_name:
+            btn.setIcon(qta.icon(icon_name, color="#90A4AE"))
+            btn.setIconSize(QSize(18, 18))
         elif not HAS_ICONS:
             btn.setText(f"{icon_name}  {text}")
 
@@ -217,10 +211,7 @@ class Sidebar(QFrame):
             for btn in [self.btn_dashboard, self.btn_all, self.btn_downloading, self.btn_finished, self.btn_settings]:
                 btn.setText("")
             if HAS_ICONS:
-                try:
-                    self.collapse_btn.setIcon(qta.icon("fa.angle-double-right", color="#90A4AE"))
-                except Exception:
-                    pass
+                self.collapse_btn.setIcon(qta.icon("fa.angle-double-right", color="#90A4AE"))
             else:
                 self.collapse_btn.setText("▶")
         else:
@@ -234,9 +225,6 @@ class Sidebar(QFrame):
                     emoji = "📊" if btn == self.btn_dashboard else "📂" if btn == self.btn_all else "⬇️" if btn == self.btn_downloading else "✅" if btn == self.btn_finished else "⚙️"
                     btn.setText(f"{emoji}  {btn.original_text}")
             if HAS_ICONS:
-                try:
-                    self.collapse_btn.setIcon(qta.icon("fa.angle-double-left", color="#90A4AE"))
-                except Exception:
-                    pass
+                self.collapse_btn.setIcon(qta.icon("fa.angle-double-left", color="#90A4AE"))
             else:
                 self.collapse_btn.setText("◀")
