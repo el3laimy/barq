@@ -154,6 +154,7 @@ class TestBrowserInstaller(unittest.TestCase):
                     checkbox_texts = [checkbox.text() for checkbox in page.findChildren(QCheckBox)]
                     label_texts = [label.text() for label in page.findChildren(QLabel)]
                 finally:
+                    page.close()
                     page.deleteLater()
             finally:
                 settings_module._settings_manager = original_settings_manager
