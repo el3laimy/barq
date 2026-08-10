@@ -32,11 +32,13 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
-      - name: Install xvfb (Linux)
+      - name: Install Linux GUI test dependencies
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y xvfb
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            xvfb \
+            libegl1
 
       - name: Run Unit Tests (Linux)
         if: runner.os == 'Linux'

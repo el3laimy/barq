@@ -113,7 +113,7 @@ def _sync_parent_directory(file_path: str) -> None:
 
 
 def _durably_replace_file(source_file: str, destination_file: str) -> None:
-    with open(source_file, 'rb') as source_handle:
+    with open(source_file, 'r+b') as source_handle:
         os.fsync(source_handle.fileno())
     os.replace(source_file, destination_file)
     _sync_parent_directory(destination_file)
@@ -310,7 +310,7 @@ class ResilientDownloader:
     def _sync_temp_file(self) -> None:
         if not os.path.exists(self.temp_file):
             return
-        with open(self.temp_file, 'rb') as temp_handle:
+        with open(self.temp_file, 'r+b') as temp_handle:
             os.fsync(temp_handle.fileno())
 
     def _resume_identity_matches(
