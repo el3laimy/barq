@@ -33,7 +33,6 @@ jobs:
           pip install -r requirements-dev.txt
 
       - name: Configure Qt for headless tests
-        if: runner.os == 'Linux'
         shell: bash
         run: |
           QT_PLUGINS="$(python - <<'PY'
@@ -47,13 +46,11 @@ jobs:
           PY
           )"
 
-          echo "QT_QPA_PLATFORM=minimal" >> "$GITHUB_ENV"
-          echo \
-            "QT_QPA_PLATFORM_PLUGIN_PATH=${QT_PLUGINS}/platforms" \
-            >> "$GITHUB_ENV"
+          echo "QT_QPA_PLATFORM=offscreen" >> "$GITHUB_ENV"
+          echo "QT_QPA_PLATFORM_PLUGIN_PATH=${QT_PLUGINS}" >> "$GITHUB_ENV"
 
           echo "Qt plugin root: ${QT_PLUGINS}"
-          ls -la "${QT_PLUGINS}/platforms"
+          ls -la "${QT_PLUGINS}/platforms" || dir "${QT_PLUGINS}/platforms"
 
       - name: Run Unit Tests
         run: |
