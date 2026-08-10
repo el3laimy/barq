@@ -83,6 +83,10 @@ class TestVerifySHA256(unittest.TestCase):
 
 class TestUpdateChecker(unittest.TestCase):
 
+    def setUp(self):
+        from PyQt6.QtCore import QCoreApplication
+        self.app = QCoreApplication.instance() or QCoreApplication([])
+
     def _make_mock_response(self, data_dict, status=200):
         """Create a mock urllib response context manager."""
         mock_response = MagicMock()

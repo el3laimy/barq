@@ -6,6 +6,8 @@ from core.queue_manager import QueueManager
 class TestQueueManager(unittest.TestCase):
 
     def setUp(self):
+        from PyQt6.QtCore import QCoreApplication
+        self.app = QCoreApplication.instance() or QCoreApplication([])
         self.test_file = "/tmp/barq_test_queues.json"
         if os.path.exists(self.test_file):
             os.remove(self.test_file)
