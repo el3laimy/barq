@@ -82,8 +82,8 @@ class _RedirectRecordingSession(_RecordingSession):
 
 class TestBrowserInboxWatcher(unittest.TestCase):
     def setUp(self):
-        from PyQt6.QtCore import QCoreApplication
-        self.app = QCoreApplication.instance() or QCoreApplication([])
+        from PyQt6.QtWidgets import QApplication
+        self.app = QApplication.instance() or QApplication([])
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.inbox_dir = Path(self.temporary_directory.name) / 'inbox'
         self.watcher = BrowserInboxWatcher(self.inbox_dir)

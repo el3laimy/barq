@@ -11,17 +11,14 @@ src_path = os.path.abspath(os.path.join(current_dir, '..', 'src'))
 if src_path not in sys.path:
     sys.path.append(src_path)
 
-from PyQt6.QtCore import QCoreApplication
+from PyQt6.QtWidgets import QApplication
 from core.ipc_server import IPCServer
 from core.database import DatabaseManager
 
 class TestIPCServerAndDatabase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        if QCoreApplication.instance() is None:
-            cls.app = QCoreApplication(sys.argv)
-        else:
-            cls.app = QCoreApplication.instance()
+        cls.app = QApplication.instance() or QApplication([])
 
     def setUp(self):
         self.db_file = os.path.join(current_dir, 'test_downloads.db')
