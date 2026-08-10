@@ -32,16 +32,25 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
+      - name: Install xvfb (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y xvfb
+
       - name: Configure Qt for headless tests
         shell: bash
         run: |
           QT_PLUGINS="$(python - <<'PY'
+          from pathlib import Path
           from PyQt6.QtCore import QLibraryInfo
 
           print(
-              QLibraryInfo.path(
-                  QLibraryInfo.LibraryPath.PluginsPath
-              )
+              Path(
+                  QLibraryInfo.path(
+                      QLibraryInfo.LibraryPath.PluginsPath
+                  )
+              ).as_posix()
           )
           PY
           )"
