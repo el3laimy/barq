@@ -26,27 +26,34 @@ extern "system" {
         -> i32;
 }
 
+#[cfg(unix)]
 pub fn restrict_directory_to_current_user(path: &Path) -> Result<()> {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
+    use std::os::unix::fs::PermissionsExt;
 
-        let mut permissions = fs::metadata(path)?.permissions();
-        permissions.set_mode(0o700);
-        fs::set_permissions(path, permissions)?;
-    }
-
+    let mut permissions = fs::metadata(path)?.permissions();
+    permissions.set_mode(0o700);
+    fs::set_permissions(path, permissions)?;
     Ok(())
 }
 
-pub fn sync_parent_directory(path: &Path) -> Result<()> {
-    #[cfg(unix)]
-    {
-        if let Some(parent) = path.parent() {
-            File::open(parent)?.sync_all()?;
-        }
-    }
+#[cfg(windows)]
+pub fn restrict_directory_to_current_user(_path: &Path) -> Result<()> {
+    // Windows per-user ACL hardening remains a separate security task.
+    Ok(())
+}
 
+#[cfg(unix)]
+pub fn sync_parent_directory(path: &Path) -> Result<()> {
+    if let Some(parent) = path.parent() {
+        File::open(parent)?.sync_all()?;
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+pub fn sync_parent_directory(_path: &Path) -> Result<()> {
+    // Windows atomic replacement already uses the existing
+    // Windows-specific rename/write-through implementation.
     Ok(())
 }
 

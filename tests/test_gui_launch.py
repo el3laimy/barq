@@ -8,9 +8,7 @@ sys.path.append(os.path.abspath("src"))
 
 class TestGuiLaunch(unittest.TestCase):
     def test_gui_window_instantiation(self):
-        app = QApplication.instance()
-        if not app:
-            app = QApplication(sys.argv)
+        app = QApplication.instance() or QApplication([])
         
         from ui.main_window import BarqMainWindow
         window = BarqMainWindow()
