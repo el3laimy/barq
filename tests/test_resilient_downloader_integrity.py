@@ -72,7 +72,6 @@ class TestResilientDownloaderIntegrity(unittest.TestCase):
             return loop.run_until_complete(coroutine)
         finally:
             loop.close()
-            asyncio.set_event_loop(None)
 
     def _segment_downloader(self, directory: str, size: int = 4):
         destination = os.path.join(directory, 'download.bin')
