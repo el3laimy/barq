@@ -15,6 +15,8 @@ class TestGuiLaunch(unittest.TestCase):
         self.assertIsNotNone(window)
         if hasattr(window, 'ipc_server') and window.ipc_server:
             window.ipc_server.stop()
+        window.close()
+        window.deleteLater()
 
 if __name__ == "__main__":
     unittest.main()
