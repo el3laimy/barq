@@ -80,18 +80,37 @@ export class ContextAssembler {
     });
   }
 
+  public async fromMediaPage(
+    tab?: BrowserTabContext,
+  ): Promise<DownloadEnvelope | undefined> {
+    const pageUrl = firstHttpUrl(tab?.url);
+    if (!pageUrl) return undefined;
+
+    return this.createEnvelope({
+      url: pageUrl,
+      pageUrl,
+      source: 'media',
+      tab,
+    });
+  }
+
   public async fromContextMenu(
     selection: ContextMenuSelection,
     tab?: BrowserTabContext,
   ): Promise<DownloadEnvelope | undefined> {
-    const url = firstHttpUrl(selection.linkUrl, selection.srcUrl, selection.pageUrl, tab?.url);
+    const isMedia = selection.menuItemId === 'barq-download-media' || Boolean(selection.mediaType);
+    const pageUrl = firstHttpUrl(selection.pageUrl, tab?.url);
+    const url = isMedia
+      ? (pageUrl ?? firstHttpUrl(selection.srcUrl, selection.linkUrl))
+      : firstHttpUrl(selection.linkUrl, selection.srcUrl, selection.pageUrl, tab?.url);
+
     if (!url) return undefined;
 
     return this.createEnvelope({
       url,
-      source: selection.mediaType ? 'media' : 'context-menu',
+      source: isMedia ? 'media' : 'context-menu',
       referrer: firstHttpUrl(selection.pageUrl, tab?.url),
-      pageUrl: firstHttpUrl(tab?.url, selection.pageUrl),
+      pageUrl,
       tab,
     });
   }

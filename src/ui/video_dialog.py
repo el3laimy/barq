@@ -13,13 +13,14 @@ class FetchVideoInfoThread(QThread):
     info_fetched = pyqtSignal(dict)
     fetch_failed = pyqtSignal(str)
 
-    def __init__(self, url, parent=None):
+    def __init__(self, url, request_headers=None, parent=None):
         super().__init__(parent)
         self.url = url
+        self.request_headers = dict(request_headers or {})
 
     def run(self):
         try:
-            info = VideoInfoExtractor.extract_info(self.url)
+            info = VideoInfoExtractor.extract_info(self.url, request_headers=self.request_headers)
             if info:
                 self.info_fetched.emit(info)
             else:
@@ -29,13 +30,14 @@ class FetchVideoInfoThread(QThread):
 
 
 class VideoDownloadDialog(QDialog):
-    def __init__(self, initial_url="", parent=None):
+    def __init__(self, initial_url="", request_headers=None, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Barq Media Engine • Stream & Video Extractor")
         self.setMinimumWidth(560)
         self.setModal(True)
         self.download_config = None
         self.parsed_formats = []
+        self.request_headers = dict(request_headers or {})
 
         self.setStyleSheet("""
             QDialog {
@@ -139,7 +141,7 @@ class VideoDownloadDialog(QDialog):
         self.video_title_label.setText("⌛ Fetching video metadata and available qualities...")
         self.start_btn.setEnabled(False)
 
-        self.fetch_thread = FetchVideoInfoThread(url, self)
+        self.fetch_thread = FetchVideoInfoThread(url, request_headers=self.request_headers, parent=self)
         self.fetch_thread.info_fetched.connect(self.on_info_fetched)
         self.fetch_thread.fetch_failed.connect(self.on_fetch_failed)
         self.fetch_thread.start()

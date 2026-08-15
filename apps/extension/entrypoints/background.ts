@@ -18,7 +18,8 @@ import {
   type ScopedRequestContextProvider,
 } from '@barq/browser-core';
 
-const CONTEXT_MENU_ID = 'barq-download-link';
+const DIRECT_CONTEXT_MENU_ID = 'barq-download-link';
+const MEDIA_CONTEXT_MENU_ID = 'barq-download-media';
 const RECOVERY_ALARM = 'barq-recovery';
 const AUTO_CAPTURE_ENABLED = 'autoCaptureEnabled';
 
@@ -47,9 +48,18 @@ export default defineBackground(() => {
   browser.alarms.create(RECOVERY_ALARM, { periodInMinutes: 1 });
 
   browser.contextMenus.onClicked.addListener((selection, tab) => {
-    if (selection.menuItemId !== CONTEXT_MENU_ID) return;
-    void handOffContextMenu(selection, tab, contextAssembler, nativeClient);
+    if (selection.menuItemId === DIRECT_CONTEXT_MENU_ID || selection.menuItemId === MEDIA_CONTEXT_MENU_ID) {
+      void handOffContextMenu(selection, tab, contextAssembler, nativeClient);
+    }
   });
+
+  browser.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type === 'barq.analyze_media') {
+      void analyzeMediaTab(message.tabId, contextAssembler, nativeClient).then(sendResponse);
+      return true;
+    }
+  });
+
   browser.downloads.onCreated.addListener((download) => {
     void captureDownload(download, captureCoordinator);
   });
@@ -157,10 +167,47 @@ async function cookieStoreForTab(tab: BrowserTabContext | undefined): Promise<st
 async function installContextMenu(): Promise<void> {
   await browser.contextMenus.removeAll();
   browser.contextMenus.create({
-    id: CONTEXT_MENU_ID,
+    id: DIRECT_CONTEXT_MENU_ID,
     title: 'Download with Barq',
-    contexts: ['link', 'image', 'video', 'audio', 'page'],
+    contexts: ['link', 'image'],
   });
+  browser.contextMenus.create({
+    id: MEDIA_CONTEXT_MENU_ID,
+    title: 'Download media with Barq ⚡',
+    contexts: ['page', 'video', 'audio'],
+  });
+}
+
+async function analyzeMediaTab(
+  tabId: number | undefined,
+  contextAssembler: ContextAssembler,
+  nativeClient: NativeClient,
+): Promise<{ ok: boolean; reason?: string }> {
+  if (tabId === undefined) return { ok: false, reason: 'invalid_tab' };
+
+  try {
+    const tab = await browser.tabs.get(tabId);
+    if (!tab?.url) return { ok: false, reason: 'invalid_tab' };
+
+    const envelope = await contextAssembler.fromMediaPage(tab);
+    if (!envelope) return { ok: false, reason: 'invalid_page' };
+
+    const response = await nativeClient.prepareCapture(
+      envelope,
+      contextAssembler.createHello(browser.runtime.getManifest().version),
+      2_500,
+    );
+
+    if (response.status === 'accepted' && response.durable) {
+      await setHandoffBadge('');
+      return { ok: true };
+    }
+    await setHandoffBadge('!');
+    return { ok: false, reason: 'handoff_failed' };
+  } catch {
+    await setHandoffBadge('!');
+    return { ok: false, reason: 'native_unavailable' };
+  }
 }
 
 async function handOffContextMenu(

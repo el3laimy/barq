@@ -106,10 +106,10 @@ class Sidebar(QFrame):
         self.btn_group.setExclusive(True)
         self.btn_group.idClicked.connect(self.emit_page_change)
 
-        self.btn_dashboard = self.create_nav_btn("Dashboard", "fa.dashboard" if HAS_ICONS else "📊", 0, checked=True)
-        self.btn_all = self.create_nav_btn("All Downloads", "fa.list" if HAS_ICONS else "📂", 1)
-        self.btn_downloading = self.create_nav_btn("Downloading", "fa.download" if HAS_ICONS else "⬇️", 2)
-        self.btn_finished = self.create_nav_btn("Completed", "fa.check-circle" if HAS_ICONS else "✅", 3)
+        self.btn_dashboard = self.create_nav_btn("Dashboard", "fa5s.tachometer-alt" if HAS_ICONS else "📊", 0, checked=True)
+        self.btn_all = self.create_nav_btn("All Downloads", "fa5s.list" if HAS_ICONS else "📂", 1)
+        self.btn_downloading = self.create_nav_btn("Downloading", "fa5s.download" if HAS_ICONS else "⬇️", 2)
+        self.btn_finished = self.create_nav_btn("Completed", "fa5s.check-circle" if HAS_ICONS else "✅", 3)
         
         main_layout.addStretch()
 
@@ -120,7 +120,7 @@ class Sidebar(QFrame):
         main_layout.addWidget(sep2)
         main_layout.addSpacing(6)
 
-        self.btn_settings = self.create_nav_btn("Settings", "fa.cog" if HAS_ICONS else "⚙️", 4, is_bottom=True)
+        self.btn_settings = self.create_nav_btn("Settings", "fa5s.cog" if HAS_ICONS else "⚙️", 4, is_bottom=True)
         
         # System Footer Info
         self.footer_box = QFrame()
@@ -142,7 +142,7 @@ class Sidebar(QFrame):
 
         self.collapse_btn = QPushButton("◀" if not HAS_ICONS else "")
         if HAS_ICONS:
-            self.collapse_btn.setIcon(qta.icon("fa.angle-double-left", color="#90A4AE"))
+            self.collapse_btn.setIcon(qta.icon("fa5s.angle-double-left", color="#90A4AE"))
         self.collapse_btn.setStyleSheet("""
             QPushButton {
                 background: transparent;
@@ -171,7 +171,7 @@ class Sidebar(QFrame):
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.original_text = text
         
-        if HAS_ICONS and "fa." in icon_name:
+        if HAS_ICONS and icon_name.startswith("fa5s."):
             btn.setIcon(qta.icon(icon_name, color="#90A4AE"))
             btn.setIconSize(QSize(18, 18))
         elif not HAS_ICONS:
@@ -211,7 +211,7 @@ class Sidebar(QFrame):
             for btn in [self.btn_dashboard, self.btn_all, self.btn_downloading, self.btn_finished, self.btn_settings]:
                 btn.setText("")
             if HAS_ICONS:
-                self.collapse_btn.setIcon(qta.icon("fa.angle-double-right", color="#90A4AE"))
+                self.collapse_btn.setIcon(qta.icon("fa5s.angle-double-right", color="#90A4AE"))
             else:
                 self.collapse_btn.setText("▶")
         else:
@@ -225,6 +225,6 @@ class Sidebar(QFrame):
                     emoji = "📊" if btn == self.btn_dashboard else "📂" if btn == self.btn_all else "⬇️" if btn == self.btn_downloading else "✅" if btn == self.btn_finished else "⚙️"
                     btn.setText(f"{emoji}  {btn.original_text}")
             if HAS_ICONS:
-                self.collapse_btn.setIcon(qta.icon("fa.angle-double-left", color="#90A4AE"))
+                self.collapse_btn.setIcon(qta.icon("fa5s.angle-double-left", color="#90A4AE"))
             else:
                 self.collapse_btn.setText("◀")

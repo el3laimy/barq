@@ -120,10 +120,23 @@ The context menu registers on `runtime.onInstalled`. Try disabling and re-enabli
 
 The extension communicates with the Barq desktop application through Chrome's Native Messaging API using host name: `app.barq.browser`.
 
-The Native Host is a Rust binary in `apps/native-host/`. It must be:
-1. Compiled (`cargo build --manifest-path apps/native-host/Cargo.toml`)
-2. Registered with a Native Messaging manifest in the browser's expected location
-3. The manifest's `allowed_origins` must include the extension's ID
+The Native Host is a Rust binary in `apps/native-host/`. During Linux development, use `scripts/setup_browser_integration.py` to register manifests for Chromium browsers:
+
+```bash
+# Register Brave:
+python scripts/setup_browser_integration.py register --target brave:<ID>
+
+# Register Chrome:
+python scripts/setup_browser_integration.py register --target chrome:<ID>
+
+# Multi-browser:
+python scripts/setup_browser_integration.py register --target brave:<BRAVE_ID> --target chrome:<CHROME_ID>
+```
+
+Developer Mode Extension ID locations:
+- **Brave**: `brave://extensions`
+- **Chrome**: `chrome://extensions`
+- **Edge**: `edge://extensions`
 
 ### Native Host Name Consistency
 
