@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import sys
 import threading
@@ -5,9 +7,50 @@ import imageio_ffmpeg
 import yt_dlp
 from PyQt6.QtCore import QThread, pyqtSignal
 
+_ALLOWED_MEDIA_HEADERS = frozenset(
+    {"cookie", "user-agent", "referer", "origin", "accept", "accept-language"}
+)
+
+
+def sanitize_media_request_headers(
+    request_headers: dict[str, str] | None,
+) -> dict[str, str]:
+    if not request_headers:
+        return {}
+
+    result = {}
+    for name, value in request_headers.items():
+        if not isinstance(name, str) or not isinstance(value, str):
+            continue
+        if name.lower() not in _ALLOWED_MEDIA_HEADERS:
+            continue
+        if "\r" in value or "\n" in value:
+            continue
+        result[name] = value
+
+    return result
+
+
+def build_common_ydl_options(request_headers: dict[str, str] | None = None) -> dict:
+    opts = {
+        "quiet": True,
+        "no_warnings": True,
+    }
+
+    headers = sanitize_media_request_headers(request_headers)
+    if headers:
+        opts["http_headers"] = headers
+
+    ffmpeg_bin = VideoInfoExtractor.get_ffmpeg_path()
+    if ffmpeg_bin:
+        opts["ffmpeg_location"] = ffmpeg_bin
+
+    return opts
+
+
 class VideoInfoExtractor:
     """Extracts video metadata, resolutions, and streaming formats using yt-dlp."""
-    
+
     @staticmethod
     def get_ffmpeg_path():
         try:
@@ -16,17 +59,12 @@ class VideoInfoExtractor:
             return None
 
     @classmethod
-    def extract_info(cls, url):
-        ydl_opts = {
-            'quiet': True,
-            'no_warnings': True,
+    def extract_info(cls, url, request_headers=None):
+        ydl_opts = build_common_ydl_options(request_headers)
+        ydl_opts.update({
             'extract_flat': False,
             'skip_download': True,
-        }
-        
-        ffmpeg_bin = cls.get_ffmpeg_path()
-        if ffmpeg_bin:
-            ydl_opts['ffmpeg_location'] = ffmpeg_bin
+        })
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
@@ -90,11 +128,12 @@ class VideoDownloadWorker(QThread):
     task_finished = pyqtSignal()
     error_occurred = pyqtSignal(str)
 
-    def __init__(self, url, destination, format_id='bestvideo+bestaudio/best', parent=None):
+    def __init__(self, url, destination, format_id='bestvideo+bestaudio/best', request_headers=None, parent=None):
         super().__init__(parent)
         self.url = url
         self.destination = destination
         self.format_id = format_id
+        self.request_headers = dict(request_headers or {})
         self._is_stopped = False
 
     def run(self):
@@ -105,17 +144,12 @@ class VideoDownloadWorker(QThread):
             
             out_template = os.path.join(dest_dir, f"{os.path.splitext(dest_filename)[0]}.%(ext)s")
 
-            ydl_opts = {
+            ydl_opts = build_common_ydl_options(self.request_headers)
+            ydl_opts.update({
                 'format': self.format_id,
                 'outtmpl': out_template,
                 'progress_hooks': [self._progress_hook],
-                'quiet': True,
-                'no_warnings': True,
-            }
-
-            ffmpeg_bin = VideoInfoExtractor.get_ffmpeg_path()
-            if ffmpeg_bin:
-                ydl_opts['ffmpeg_location'] = ffmpeg_bin
+            })
                 
             if 'bestaudio' in self.format_id and 'bestvideo' not in self.format_id:
                 ydl_opts['postprocessors'] = [{

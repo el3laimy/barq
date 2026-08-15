@@ -114,9 +114,43 @@ Barq Download Manager is actively under development. Core multi-segment HTTP/HTT
 
 ---
 
-## 🌐 Browser Integration
+## 🌐 Browser Integration (Linux Development)
 
-The retired Python browser bridge is not bundled or registered by current desktop builds. At startup, Barq removes only verified `com.barq.downloader` manifests at known legacy locations and, on Windows, only the matching per-user host keys. If Barq reports that it removed one, manually disable or remove **Barq Download Manager Integration** from the browser's Extensions page before starting browser downloads; Barq does not modify browser extensions automatically. The secure `app.barq.browser` source is not yet included in a signed installer or browser-store package; setup instructions will be published with those artifacts.
+Barq provides secure browser integration via Native Messaging (`app.barq.browser`) built in Rust (`apps/native-host`) and a Manifest V3 extension (`apps/extension`).
+
+### Linux Native Messaging Setup Tool (Development)
+
+During development, use `scripts/setup_browser_integration.py` to register the Native Host for your installed Chromium-based browser(s):
+
+```bash
+# 1. Detect installed browsers and registration status
+python scripts/setup_browser_integration.py detect
+
+# 2. Register for Brave (using your developer mode extension ID)
+python scripts/setup_browser_integration.py register \
+  --target brave:<EXTENSION_ID>
+
+# 3. Register for Google Chrome
+python scripts/setup_browser_integration.py register \
+  --target chrome:<EXTENSION_ID>
+
+# 4. Multi-browser registration (preserves existing callers and applies least-privilege manifests)
+python scripts/setup_browser_integration.py register \
+  --target brave:<BRAVE_ID> \
+  --target chrome:<CHROME_ID>
+
+# Preview changes without modifying files or rebuilding Native Host:
+python scripts/setup_browser_integration.py register \
+  --target brave:<BRAVE_ID> --dry-run
+```
+
+#### Obtaining Extension IDs in Developer Mode:
+- **Brave**: Navigate to `brave://extensions`, enable **Developer mode**, and copy the 32-character ID.
+- **Chrome**: Navigate to `chrome://extensions`, enable **Developer mode**, and copy the ID.
+- **Microsoft Edge**: Navigate to `edge://extensions`, enable **Developer mode**, and copy the ID.
+
+> **Note**: `scripts/setup_browser_integration.py` is a development/source setup tool. Windows multi-browser registration, signed store packages, and installer integration are tracked as future milestones. Opera and Vivaldi specifications exist in the registry but are not claimed verified until manually tested on those environments.
+
 
 ---
 

@@ -251,6 +251,8 @@ class BarqMainWindow(QMainWindow):
             self.content_area.setCurrentIndex(index)
 
     def setup_tray(self):
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            return
         icon = self.app_icon if hasattr(self, 'app_icon') and not self.app_icon.isNull() else load_app_icon()
         if icon.isNull():
             icon = self.style().standardIcon(self.style().StandardPixmap.SP_ArrowDown)
@@ -284,7 +286,7 @@ class BarqMainWindow(QMainWindow):
         QApplication.quit()
 
     def closeEvent(self, event):
-        if self.tray_icon.isVisible():
+        if hasattr(self, 'tray_icon') and self.tray_icon.isVisible():
             self.hide()
             if not self.has_shown_tray_msg:
                 self.tray_icon.showMessage(

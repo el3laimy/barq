@@ -11,6 +11,7 @@ jobs:
     name: Test & Lint Python Application
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
         python-version: ['3.10', '3.11', '3.12']
@@ -31,7 +32,24 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
-      - name: Run Unit Tests
+      - name: Install Linux GUI test dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            xvfb \
+            libegl1
+
+      - name: Run Unit Tests (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          xvfb-run -a python -m unittest discover -s tests -p "test_*.py"
+        env:
+          PYTHONPATH: src
+          QT_QPA_PLATFORM: offscreen
+
+      - name: Run Unit Tests (Windows)
+        if: runner.os == 'Windows'
         run: |
           python -m unittest discover -s tests -p "test_*.py"
         env:
@@ -117,10 +135,11 @@ jobs:
           pnpm --filter @barq/browser-core typecheck
           pnpm --filter @barq/extension typecheck
 
-      - name: Test protocol and browser capture core
+      - name: Test protocol, browser core, and extension
         run: |
           pnpm --filter @barq/protocol test
           pnpm --filter @barq/browser-core test
+          pnpm --filter @barq/extension test
 
       - name: Build Chrome and Firefox extensions
         run: |

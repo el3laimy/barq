@@ -8,8 +8,6 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-
 # Add src to path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
@@ -156,6 +154,7 @@ class TestBrowserInstaller(unittest.TestCase):
                     checkbox_texts = [checkbox.text() for checkbox in page.findChildren(QCheckBox)]
                     label_texts = [label.text() for label in page.findChildren(QLabel)]
                 finally:
+                    page.close()
                     page.deleteLater()
             finally:
                 settings_module._settings_manager = original_settings_manager

@@ -204,6 +204,10 @@ class TestBrowserInboxWatcher(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'absolute path'):
                 browser_inbox_dir()
 
+    @unittest.skipIf(
+        os.name == 'nt',
+        'XDG_STATE_HOME applies to the Unix inbox path',
+    )
     def test_relative_xdg_state_home_uses_the_standard_durable_location(self):
         with patch.dict(
             os.environ,
@@ -215,6 +219,32 @@ class TestBrowserInboxWatcher(unittest.TestCase):
                 browser_inbox_dir(),
                 Path.home() / '.local' / 'state' / 'barq' / 'inbox',
             )
+
+    @unittest.skipUnless(
+        os.name == 'nt',
+        'Windows-specific inbox path test',
+    )
+    def test_windows_inbox_uses_local_app_data(self):
+        with tempfile.TemporaryDirectory() as directory:
+            local_app_data = Path(directory)
+
+            with patch.dict(
+                os.environ,
+                {
+                    'LOCALAPPDATA': str(local_app_data),
+                    'XDG_STATE_HOME': 'relative-state',
+                },
+                clear=False,
+            ):
+                os.environ.pop(
+                    'BARQ_BROWSER_INBOX_DIR',
+                    None,
+                )
+
+                self.assertEqual(
+                    browser_inbox_dir(),
+                    local_app_data / 'Barq' / 'inbox',
+                )
 
     def _write_envelope(self, envelope):
         self.inbox_dir.mkdir(parents=True, exist_ok=True)
